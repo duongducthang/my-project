@@ -1,0 +1,22 @@
+*{
+    box-sizing: border-box;
+}
+
+html{
+    font-size:62.5%;
+}
+
+/* khôi phục lại cỡ chữ mặc định theo rem */
+body{
+  font-size:1.6rem ;
+  font-family: "Inter", sans-serif;
+}
+/* ==========bỏ gạch chân============ */
+a{
+    text-decoration: none;
+}
+
+/* ===============header============== */
+.header .body{
+    display: flex;
+}
