@@ -1,25 +1,19 @@
-:root {
-  --color-brand: 60 73 63;
-  --color-brand-dark: 42 51 41;
-  --color-brand-muted: 77 84 78;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply text-[#333333] font-sans antialiased;
+    background-color: #ffffff;
+  }
 }
 
-.dark {
-  --color-brand: 60 73 63;
-  --color-brand-dark: 42 51 41;
-  --color-brand-muted: 77 84 78;
+/* Tùy chỉnh thanh cuộn cho Modal */
+::-webkit-scrollbar {
+  width: 6px;
 }
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
 }

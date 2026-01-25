@@ -1,84 +1,92 @@
-import axios from 'axios';
-import { API_ENDPOINT_URL, DEFAULT_TIMEOUT, STORAGE_KEYS, HTTP_STATUS, ROUTE_LOGIN_PATH, IS_PRODUCTION } from '../constants';
+import axios from "axios";
 
+// ENV (Vite standard)
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+// Storage keys
+const TOKEN_KEY = "access_token";
+const USER_KEY = "user";
+
+// HTTP status
+const HTTP_STATUS = {
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  SERVER_ERROR: 500,
+};
+
+// Axios instance
 const axiosClient = axios.create({
-  baseURL: API_ENDPOINT_URL,
-  timeout: DEFAULT_TIMEOUT,
+  baseURL: API_URL,
+  timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
+// ================= REQUEST INTERCEPTOR =================
+
 axiosClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+    const token = localStorage.getItem(TOKEN_KEY);
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    if (!IS_PRODUCTION) {
-      console.log(`[Request] ${config.method?.toUpperCase()} ${config.url}`, {
-        data: config.data,
-        params: config.params,
-      });
+    if (import.meta.env.DEV) {
+      console.log(
+        `[API Request] ${config.method?.toUpperCase()} ${config.url}`,
+        config.data || config.params
+      );
     }
 
     return config;
   },
   (error) => {
-    if (!IS_PRODUCTION) {
-      console.error('[Request Error]', error);
-    }
+    console.error("[API Request Error]", error);
     return Promise.reject(error);
   }
 );
 
+// ================= RESPONSE INTERCEPTOR =================
+
 axiosClient.interceptors.response.use(
   (response) => {
-    if (!IS_PRODUCTION) {
-      console.log(`[Response] ${response.config.method?.toUpperCase()} ${response.config.url}`, {
-        status: response.status,
-        data: response.data,
-      });
+    if (import.meta.env.DEV) {
+      console.log(
+        `[API Response] ${response.config.url}`,
+        response.data
+      );
     }
 
-    return response.data;
+    return response;
   },
   (error) => {
-    const { response } = error;
+    const status = error.response?.status;
 
-    if (!IS_PRODUCTION) {
-      console.error('[Response Error]', {
-        url: error.config?.url,
-        method: error.config?.method,
-        status: response?.status,
-        data: response?.data,
-        message: error.message,
-      });
-    }
+    // Token expired
+    if (status === HTTP_STATUS.UNAUTHORIZED) {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
 
-    if (response?.status === HTTP_STATUS.UNAUTHORIZED) {
-      localStorage.removeItem(STORAGE_KEYS.TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.USER);
-      
-      if (window.location.pathname !== ROUTE_LOGIN_PATH) {
-        window.location.href = ROUTE_LOGIN_PATH;
+      if (!window.location.pathname.includes("/login")) {
+        window.location.href = "/login";
       }
     }
 
-    if (response?.status === HTTP_STATUS.FORBIDDEN) {
-      console.warn('Access forbidden');
+    // Server error
+    if (status === HTTP_STATUS.SERVER_ERROR) {
+      console.error("Server error");
     }
 
-    if (response?.status === HTTP_STATUS.SERVER_ERROR) {
-      console.error('Server error occurred');
-    }
+    const message =
+      error.response?.data?.message ||
+      error.message ||
+      "Something went wrong";
 
-    const errorMessage = response?.data?.message || error.message || 'An error occurred';
     return Promise.reject({
-      ...error,
-      message: errorMessage,
-      status: response?.status,
+      message,
+      status,
     });
   }
 );
