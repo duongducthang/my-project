@@ -1,146 +1,372 @@
-import { useEffect, useRef, useState } from 'react';
+/* eslint-disable react-hooks/exhaustive-deps */
+//Trang DashBoard
+
+import { useEffect, useRef, useState, useMemo } from 'react';
 import Chart from 'chart.js/auto';
 import CustomDatePicker from '../../components/common/CustomDatePicker';
 
 const Dashboard = () => {
-    const radarChartRef = useRef(null);
-    const lineChartRef = useRef(null);
-    const barChartRef = useRef(null);
-    const [selectedDate, setSelectedDate] = useState('2024-08-17');
-    const [selectedWeek, setSelectedWeek] = useState('Tuần 1 tháng 8/2024');
-    const [selectedMonth, setSelectedMonth] = useState('Tháng 8/2024');
-
-    // Dữ liệu mẫu giả lập theo ngày/tuần/tháng
-    const getRadarData = (date) => {
-        // Cố định số liệu cho ngày 2024-08-17 khớp với ảnh mẫu của người dùng
-        if (date === '2024-08-17') {
-            return [239, 155, 100, 120, 77, 176];
-        }
-        // Giả lập dữ liệu thay đổi nhẹ cho các ngày khác
-        const seed = parseInt(date.replace(/-/g, '')) || 0;
-        return [
-            200 + (seed % 50), 
-            150 + (seed % 30), 
-            80 + (seed % 40), 
-            110 + (seed % 20), 
-            70 + (seed % 15), 
-            160 + (seed % 25)
-        ];
+    // KHỞI TẠO REFS VÀ STATE
+    const radarChartRef = useRef(null); // Ref cho biểu đồ Radar (tròn)
+    const lineChartRef = useRef(null);  // Ref cho biểu đồ Line (đường)
+    const barChartRef = useRef(null);   // Ref cho biểu đồ Bar (cột)
+    
+    const [dailyLogs, setDailyLogs] = useState([]); // Lưu danh sách lịch sử calo từ localStorage
+    const lastLogsRef = useRef(""); // Lưu chuỗi JSON cuối cùng để so sánh, tránh re-render thừa
+    
+    // Hàm hỗ trợ định dạng ngày YYYY-MM-DD theo giờ địa phương chuẩn
+    const formatDate = (date) => {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     };
 
-    const getLineData = (week) => {
-        // Giả lập dữ liệu thay đổi theo tuần
-        if (week.includes('1')) return [1820, 1950, 1420, 1950, 1000, 650, 1880];
-        if (week.includes('2')) return [1500, 1600, 1700, 1400, 1900, 2000, 1800];
-        return [1200, 1300, 1100, 1500, 1400, 1600, 1300];
+    // Hàm an toàn để lấy giá trị số từ kcal
+    const parseKcal = (val) => {
+        const num = parseFloat(val);
+        return isNaN(num) ? 0 : num;
     };
 
-    const getBarData = (month) => {
-        // Cố định số liệu cho Tháng 8/2024 khớp với ảnh mẫu của người dùng
-        if (month === 'Tháng 8/2024') {
-            return [
-                [3000, 750, 2950, 1100], // DS 1 (Xanh lá nhạt)
-                [2400, 350, 1580, 2450], // DS 2 (Xanh lá đậm hơn)
-                [880, 750, 1350, 1480],  // DS 3 (Xanh lục)
-                [2100, 2950, 2750, 150],  // DS 4 (Tím)
-                [920, 1950, 2600, 50],   // DS 5 (Hồng nhạt)
-                [250, 920, 2150, 2550],  // DS 6 (Xanh ngọc)
-                [620, 1480, 1550, 320],  // DS 7 (Hồng đậm)
-            ];
-        }
-        // Các tháng khác vẫn dùng ngẫu nhiên hoặc mặc định
-        return [
-            [Math.random() * 3000, Math.random() * 3000, Math.random() * 3000, Math.random() * 3000],
-            [Math.random() * 2500, Math.random() * 2500, Math.random() * 2500, Math.random() * 2500],
-            [Math.random() * 1500, Math.random() * 1500, Math.random() * 1500, Math.random() * 1500],
-            [Math.random() * 2800, Math.random() * 2800, Math.random() * 2800, Math.random() * 2800],
-            [Math.random() * 2000, Math.random() * 2000, Math.random() * 2000, Math.random() * 2000],
-            [Math.random() * 2200, Math.random() * 2200, Math.random() * 2200, Math.random() * 2200],
-            [Math.random() * 1800, Math.random() * 1800, Math.random() * 1800, Math.random() * 1800],
-        ];
-    };
-
+    const [selectedDate, setSelectedDate] = useState(formatDate(new Date())); // Ngày đang chọn (mặc định hôm nay)
+    
+    // Khởi tạo tháng/năm hiện tại để làm bộ lọc
+    const now = new Date();
+    const currentMonthYear = `Tháng ${now.getMonth() + 1}/${now.getFullYear()}`;
+    const [selectedWeek, setSelectedWeek] = useState(`Tuần 1 tháng ${now.getMonth() + 1}/${now.getFullYear()}`);
+    const [selectedMonth, setSelectedMonth] = useState(currentMonthYear);
+    
+    //  SIDE EFFECTS - Tải dữ liệu từ localStorage khi component mount và khi có thay đổi
     useEffect(() => {
-        const radarCtx = radarChartRef.current.getContext('2d');
-        const lineCtx = lineChartRef.current.getContext('2d');
-        const barCtx = barChartRef.current.getContext('2d');
+        const loadLogs = () => {
+            try {
+                const saved = localStorage.getItem('calorie_logs');
+                
+                // Chỉ cập nhật nếu dữ liệu thực sự thay đổi (so sánh chuỗi JSON)
+                if (saved !== lastLogsRef.current) {
+                    lastLogsRef.current = saved;
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        if (Array.isArray(parsed)) {
+                            setDailyLogs(parsed);
+                        }
+                    } else {
+                        setDailyLogs([]);
+                    }
+                }
+            } catch (error) {
+                console.error("Lỗi khi tải dữ liệu từ localStorage:", error);
+            }
+        };
 
-        // 1. Radar Chart
+        // Tải lần đầu khi mount
+        loadLogs();
+
+        // Lắng nghe sự kiện 'storage' để đồng bộ dữ liệu giữa các tab/component
+        const handleStorageChange = (e) => {
+            if (e.key === 'calorie_logs') {
+                loadLogs();
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        
+        // Kiểm tra định kỳ để đồng bộ trong cùng tab (dùng interval lớn hơn để tránh lag)
+        const interval = setInterval(loadLogs, 2000);
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            clearInterval(interval);
+        };
+    }, []);
+
+    // Tạo danh sách các tuần cho bộ lọc dựa trên dữ liệu thực tế và thời gian hiện tại
+    const weekOptions = useMemo(() => {
+        const options = [];
+        const now = new Date();
+        
+        // Tìm ngày xa nhất trong quá khứ từ dailyLogs
+        let startDate = new Date();
+        if (dailyLogs.length > 0) {
+            const allDates = dailyLogs.map(log => new Date(log.date));
+            startDate = new Date(Math.min(...allDates));
+        }
+        
+        // Luôn lấy ít nhất là từ 4 tuần trước nếu không có dữ liệu cũ hơn
+        const fourWeeksAgo = new Date();
+        fourWeeksAgo.setDate(now.getDate() - 28);
+        if (startDate > fourWeeksAgo) startDate = fourWeeksAgo;
+
+        // Duyệt từ ngày hiện tại ngược về quá khứ theo từng tuần
+        let current = new Date(now);
+        while (current >= startDate) {
+            const month = current.getMonth() + 1;
+            const year = current.getFullYear();
+            
+            // Tính xem ngày này thuộc tuần mấy của tháng
+            const firstDayOfMonth = new Date(year, month - 1, 1);
+            const weekNum = Math.ceil((current.getDate() + firstDayOfMonth.getDay()) / 7);
+            options.push(`Tuần ${weekNum} tháng ${month}/${year}`);
+            
+            // Lùi lại 7 ngày
+            current.setDate(current.getDate() - 7);
+        }
+        
+        return [...new Set(options)]; 
+    }, [dailyLogs]);
+
+    // Tạo danh sách các tháng cho bộ lọc dựa trên dữ liệu thực tế
+    const monthOptions = useMemo(() => {
+        const options = [];
+        const now = new Date();
+        
+        let startDate = new Date();
+        if (dailyLogs.length > 0) {
+            const allDates = dailyLogs.map(log => new Date(log.date));
+            startDate = new Date(Math.min(...allDates));
+        }
+
+        // Luôn lấy ít nhất là 6 tháng trước
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(now.getMonth() - 6);
+        if (startDate > sixMonthsAgo) startDate = sixMonthsAgo;
+
+        let current = new Date(now);
+        while (current >= startDate || (current.getMonth() === startDate.getMonth() && current.getFullYear() === startDate.getFullYear())) {
+            options.push(`Tháng ${current.getMonth() + 1}/${current.getFullYear()}`);
+            current.setMonth(current.getMonth() - 1);
+            
+            // Tránh vòng lặp vô tận nếu có lỗi logic
+            if (options.length > 100) break; 
+        }
+        return options;
+    }, [dailyLogs]);
+
+    // Tự động cập nhật giá trị mặc định cho bộ lọc nếu giá trị hiện tại không còn hợp lệ
+    useEffect(() => {
+        if (weekOptions.length > 0 && (!selectedWeek || !weekOptions.includes(selectedWeek))) {
+            setSelectedWeek(weekOptions[0]);
+        }
+        if (monthOptions.length > 0 && (!selectedMonth || !monthOptions.includes(selectedMonth))) {
+            setSelectedMonth(monthOptions[0]);
+        }
+    }, [weekOptions, monthOptions, selectedWeek, selectedMonth]);
+
+    //  CÁC HÀM HỖ TRỢ XỬ LÝ DỮ LIỆU (HELPER FUNCTIONS)
+    
+    // Lấy dữ liệu Calo thực tế cho biểu đồ Radar dựa trên ngày được chọn
+    // Hàm này sẽ trả về danh sách tên món ăn và lượng calo tương ứng của ngày đó
+    const getRadarData = (date) => {
+        const dayLogs = dailyLogs.filter(log => log.date === date);
+        
+        // Nhóm các món ăn trùng tên và cộng dồn lượng calo
+        const foodTotals = dayLogs.reduce((acc, curr) => {
+            const name = curr.food;
+            acc[name] = (acc[name] || 0) + parseKcal(curr.kcal);
+            return acc; 
+        }, {});
+
+        const labels = Object.keys(foodTotals);
+        const data = Object.values(foodTotals);
+
+        // Nếu không có dữ liệu cho ngày này, trả về giá trị mặc định để biểu đồ không bị lỗi
+        if (labels.length === 0) {
+            return {
+                labels: ['Chưa có dữ liệu'],
+                data: [0]
+            };
+        }
+
+        return { labels, data };
+    };
+
+    // Hàm chuyển đổi chuỗi "Tuần X tháng Y/Z" thành mảng các ngày trong tuần đó (bắt đầu từ Thứ 2)
+    const getWeekRange = (weekStr) => {
+        const match = weekStr.match(/Tuần (\d+) tháng (\d+)\/(\d+)/);
+        if (!match) return null;
+        const weekNum = parseInt(match[1]);
+        const month = parseInt(match[2]);
+        const year = parseInt(match[3]);
+        
+        const firstDayOfMonth = new Date(year, month - 1, 1);
+        const firstDayWeekday = firstDayOfMonth.getDay(); // 0: CN, 1: T2...
+        const diffToMonday = firstDayWeekday === 0 ? 6 : firstDayWeekday - 1;
+        
+        const startDay = 1 - diffToMonday + (weekNum - 1) * 7;
+        
+        const dates = [];
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(year, month - 1, startDay + i);
+            dates.push(formatDate(d));
+        }
+        return dates;
+    };
+
+    // Hàm chia tháng thành các tuần thực tế để hiển thị trên biểu đồ cột
+    const getMonthWeeks = (monthStr) => {
+        const match = monthStr.match(/Tháng (\d+)\/(\d+)/);
+        if (!match) return [];
+        const month = parseInt(match[1]);
+        const year = parseInt(match[2]);
+        
+        const weeks = [];
+        const lastDay = new Date(year, month, 0);
+        
+        let currentDay = 1;
+        while (currentDay <= lastDay.getDate()) {
+            const weekDates = [];
+            // Một tuần tối đa 7 ngày hoặc đến hết tháng
+            for (let i = 0; i < 7 && currentDay <= lastDay.getDate(); i++) {
+                weekDates.push(formatDate(new Date(year, month - 1, currentDay)));
+                currentDay++;
+            }
+            weeks.push(weekDates);
+        }
+        return weeks;
+    };
+
+    // Lấy dữ liệu Calo tổng hợp theo từng ngày trong tuần cho biểu đồ Line
+    const getLineData = (week) => {
+        const weekDates = getWeekRange(week);
+        if (!weekDates) return [0, 0, 0, 0, 0, 0, 0];
+        
+        return weekDates.map(date => {
+            const dayLogs = dailyLogs.filter(log => log.date === date);
+            return dayLogs.reduce((acc, curr) => acc + parseKcal(curr.kcal), 0);
+        });
+    };
+
+    // Lấy dữ liệu Calo theo từng loại thực phẩm trong các tuần của tháng cho biểu đồ Bar
+    const getBarData = (month) => {
+        const weeks = getMonthWeeks(month);
+        
+        // Lấy danh sách tất cả các món ăn duy nhất có trong dữ liệu logs
+        const foodLabels = [...new Set(dailyLogs.map(log => log.food))];
+        
+        if (foodLabels.length === 0 || weeks.length === 0) return { labels: [], datasets: [] };
+        
+        const datasets = foodLabels.map((label, index) => {
+            const colors = ['#76ef81', '#6db41d', '#009a73', '#801b8a', '#f6538e', '#67f1b2', '#f600b3', '#40E0D0', '#FFA500', '#FF4500'];
+            
+            const data = weeks.map(weekDates => {
+                return dailyLogs
+                    .filter(log => weekDates.includes(log.date) && log.food === label)
+                    .reduce((acc, curr) => acc + parseKcal(curr.kcal), 0);
+            });
+
+            return {
+                label: label,
+                data: data,
+                backgroundColor: colors[index % colors.length]
+            };
+        });
+
+        const weekLabels = weeks.map((_, i) => `Tuần ${i + 1}`);
+        return { labels: weekLabels, datasets };
+    };
+
+    // KHỞI TẠO VÀ CẬP NHẬT BIỂU ĐỒ (CHART.JS)
+    
+    // --- BIỂU ĐỒ 1: RADAR CHART (Calo theo loại thực phẩm trong ngày) ---
+    useEffect(() => {
+        if (!radarChartRef.current) return;
+        const radarCtx = radarChartRef.current.getContext('2d');
+        const { labels: dynamicRadarLabels, data: dynamicRadarData } = getRadarData(selectedDate);
+        
         const radarChart = new Chart(radarCtx, {
             type: 'radar',
             data: {
-                labels: ['Thịt gà', 'Trứng gà', 'Súp lơ', 'Dưa hấu', 'Khoai tây', 'Chuối'],
+                labels: dynamicRadarLabels,
                 datasets: [{
                     label: 'Calo',
-                    data: getRadarData(selectedDate),
-                    backgroundColor: 'rgba(242, 161, 190, 0.3)', // Màu hồng Rose nhạt đúng theo ảnh
-                    borderColor: '#F2A1BE', // Màu hồng Rose chuẩn
+                    data: dynamicRadarData,
+                    backgroundColor: 'rgba(242, 161, 190, 0.3)', 
+                    borderColor: '#F2A1BE', 
                     borderWidth: 3,
                     pointBackgroundColor: '#F2A1BE',
                     pointBorderColor: '#F2A1BE',
                     pointBorderWidth: 1,
-                    pointRadius: 6, // Điểm nút to và rõ hơn
+                    pointRadius: 6, 
                     pointHoverRadius: 8,
                 }]
             },
             options: {
                 scales: {
                     r: {
-                        angleLines: { color: '#f0f0f0' },
-                        grid: { color: '#f0f0f0' }, // Lưới màu xám cực nhẹ
-                        pointLabels: { 
+                        angleLines: { color: '#f0f0f0' }, 
+                        grid: { color: '#f0f0f0' },      
+                        pointLabels: {
                             font: { size: 13, family: 'Inter', weight: '500' },
                             color: '#333',
-                            padding: 25 // Tăng khoảng cách để không đè lên con số
+                            padding: 25                  
                         },
                         ticks: {
-                            display: false,
+                            display: false,              
                             stepSize: 50
                         },
                         suggestedMin: 0,
-                        suggestedMax: 250
+                        suggestedMax: Math.max(300, ...dynamicRadarData)
                     }
                 },
-                plugins: { 
-                    legend: { display: false },
-                    tooltip: { enabled: true }
+                plugins: {
+                    legend: { display: false },          
+                    tooltip: { enabled: true }           
                 }
             },
-            // Đăng ký plugin hiển thị text nếu cần (hoặc dùng vẽ thủ công đơn giản)
             plugins: [{
-                id: 'valueLabels',
+                id: 'hienThiSoCalo', 
                 afterDatasetsDraw(chart) {
-                    const {ctx, data} = chart;
-                    ctx.save();
-                    ctx.font = 'bold 12px Inter';
-                    ctx.fillStyle = '#333';
+                    const canvas = chart.ctx;
+                    canvas.save();
+                    canvas.font = 'bold 12px Inter';
+                    canvas.fillStyle = '#333';
+                    canvas.textAlign = 'center';
+                    canvas.textBaseline = 'middle';
                     
-                    const dataset = data.datasets[0];
-                    dataset.data.forEach((value, index) => {
-                        const {x, y} = chart.getDatasetMeta(0).data[index];
-                        // Tính toán vị trí text để không đè lên điểm nút
-                        const angle = chart.getDatasetMeta(0).data[index].angle;
-                        const offset = 15; // Giảm offset một chút để số gần điểm hơn
-                        const textX = x + Math.cos(angle) * offset;
-                        const textY = y + Math.sin(angle) * offset;
+                    const cacDiem = chart.getDatasetMeta(0).data;
+                    const giaTriDuLieu = chart.data.datasets[0].data;
+
+                    giaTriDuLieu.forEach((giaTri, i) => {
+                        const diem = cacDiem[i];
+                        if (!diem) return;
                         
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(value, textX, textY);
+                        const x = diem.x;
+                        const y = diem.y;
+                        const centerX = chart.scales.r.xCenter;
+                        const centerY = chart.scales.r.yCenter;
+                        
+                        const dx = x - centerX;
+                        const dy = y - centerY;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        const doLech = 15;
+                        const viTriX = distance < 5 ? x : x + (dx / distance) * doLech;
+                        const viTriY = distance < 5 ? y - 10 : y + (dy / distance) * doLech;
+                        
+                        canvas.fillText(Math.round(giaTri), viTriX, viTriY);
                     });
-                    ctx.restore();
+                    canvas.restore();
                 }
             }]
         });
 
-        // 2. Line Chart
+        return () => radarChart.destroy();
+    }, [selectedDate, dailyLogs]);
+
+    // --- BIỂU ĐỒ 2: LINE CHART (Tổng calo theo các ngày trong tuần) ---
+    useEffect(() => {
+        if (!lineChartRef.current) return;
+        const lineCtx = lineChartRef.current.getContext('2d');
+        const lineData = getLineData(selectedWeek);
+        
         const lineChart = new Chart(lineCtx, {
             type: 'line',
             data: {
                 labels: ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'],
                 datasets: [{
                     label: 'Lượng calo',
-                    data: getLineData(selectedWeek),
+                    data: lineData,
                     borderColor: '#f06292',
                     backgroundColor: 'transparent',
                     tension: 0,
@@ -155,105 +381,117 @@ const Dashboard = () => {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { 
-                    y: { 
-                        beginAtZero: true, 
-                        max: 2000,
-                        ticks: {
-                            stepSize: 500,
-                            color: '#333'
-                        },
-                        grid: {
-                            color: '#e0e0e0'
-                        }
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: Math.max(2000, Math.ceil(Math.max(...lineData) / 500) * 500 + 500),
+                        ticks: { stepSize: 500, color: '#333' },
+                        grid: { color: '#e0e0e0' }
                     },
                     x: {
                         ticks: { color: '#333' },
                         grid: { display: false }
                     }
                 },
-                plugins: { 
-                    legend: { display: false }
-                }
+                plugins: { legend: { display: false } }
             }
         });
 
-        // 3. Bar Chart
-        const barData = getBarData(selectedMonth);
+        return () => lineChart.destroy();
+    }, [selectedWeek, dailyLogs]);
+
+    // --- BIỂU ĐỒ 3: BAR CHART (Calo theo loại thực phẩm qua các tuần) ---
+    useEffect(() => {
+        if (!barChartRef.current) return;
+        const barCtx = barChartRef.current.getContext('2d');
+        const { labels: barLabels, datasets: barDatasets } = getBarData(selectedMonth);
+        
+        let maxBarVal = 0;
+        if (barDatasets.length > 0) {
+            barDatasets.forEach(ds => {
+                if (ds.data && ds.data.length > 0) {
+                    const localMax = Math.max(...ds.data);
+                    if (localMax > maxBarVal) maxBarVal = localMax;
+                }
+            });
+        }
+        
         const barChart = new Chart(barCtx, {
             type: 'bar',
             data: {
-                labels: ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4'],
-                datasets: [
-                    { label: 'DS 1', data: barData[0], backgroundColor: '#76ef81' },
-                    { label: 'DS 2', data: barData[1], backgroundColor: '#6db41d' },
-                    { label: 'DS 3', data: barData[2], backgroundColor: '#009a73' },
-                    { label: 'DS 4', data: barData[3], backgroundColor: '#801b8a' },
-                    { label: 'DS 5', data: barData[4], backgroundColor: '#f6538e' },
-                    { label: 'DS 6', data: barData[5], backgroundColor: '#67f1b2' },
-                    { label: 'DS 7', data: barData[6], backgroundColor: '#f600b3' },
-                ]
+                labels: barLabels,
+                datasets: barDatasets
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { 
-                    x: { 
-                        grid: { display: false },
-                        ticks: { color: '#333' }
-                    },
-                    y: { 
-                        beginAtZero: true, 
-                        max: 3000,
-                        ticks: {
-                            stepSize: 750,
-                            color: '#333'
-                        },
-                        grid: {
-                            color: '#e0e0e0'
-                        }
-                    } 
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#333' } },
+                    y: {
+                        beginAtZero: true,
+                        max: Math.max(3000, Math.ceil(maxBarVal / 750) * 750 + 750),
+                        ticks: { stepSize: 750, color: '#333' },
+                        grid: { color: '#e0e0e0' }
+                    }
                 },
-                plugins: { 
-                    legend: { display: false }
-                }
+                plugins: { legend: { display: false } }
             }
         });
 
-        return () => {
-            radarChart.destroy();
-            lineChart.destroy();
-            barChart.destroy();
-        };
-    }, [selectedDate, selectedWeek, selectedMonth]);
-
+        return () => barChart.destroy();
+    }, [selectedMonth, dailyLogs]);
+ 
     return (
         <div className="dashboard-wrapper">
-            {/* Nhúng trực tiếp CSS vào đây */}
             <style dangerouslySetInnerHTML={{ __html: `
                 .dashboard-page { font-family: "Inter", sans-serif; background-color: #fff; padding: 20px 20px 100px 20px; max-width: 1200px; margin: 0 auto; }
                 .dashboard-title { text-align: center; font-weight: bold; margin: 0 0 30px 0; font-size: 1.2rem; }
                 .dashboard-grid { display: grid; grid-template-columns: 300px 1fr; gap: 40px; align-items: start; margin-bottom: 40px; }
-                .chart-container { margin: 0 auto; width: 100%; max-width: 450px; }
+                .chart-container { margin: 0 auto; width: 100%; max-width: 450px; height: 400px; display: flex; align-items: center; justify-content: center; }
                 .chart-caption { text-align: center; font-size: 1rem; color: #555; margin-top: 15px; font-weight: 500; }
                 .chart-main { display: flex; flex-direction: column; align-items: center; }
                 .filter-group { margin: 30px 0 15px; }
                 .filter-group label { display: block; font-weight: 600; font-size: 1rem; margin-bottom: 8px; color: #333; }
-                .filter-group select { padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 5px; background-color: #fff; min-width: 250px; outline: none; color: #40E0D0; font-weight: 500; }
+                .filter-group select { 
+                    padding: 8px 12px; 
+                    border: 1px solid #d9d9d9; 
+                    border-radius: 5px; 
+                    background-color: #fff; 
+                    min-width: 250px; 
+                    width: 100%;
+                    max-width: 100%;
+                    outline: none; 
+                    color: #40E0D0; 
+                    font-weight: 500; 
+                    text-overflow: ellipsis;
+                    overflow: hidden;
+                    white-space: nowrap;
+                    appearance: auto;
+                }
                 .date-input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 15px; }
                 .line-chart-box, .bar-chart-box { width: 100%; margin: 0 auto; max-width: 1000px; height: 400px; }
                 .full-width-chart { margin-bottom: 60px; }
                 
                 @media (max-width: 992px) {
-                    .dashboard-grid { grid-template-columns: 1fr; }
-                    .dashboard-sidebar { margin-bottom: 30px; }
-                    .dashboard-title { text-align: center; }
+                    .dashboard-grid { grid-template-columns: 1fr; gap: 30px; }
+                    .dashboard-sidebar { width: 100% !important; margin-bottom: 20px; }
+                    .dashboard-sidebar > div { width: 100% !important; }
+                    .dashboard-title { text-align: center; font-size: 1.1rem; }
+                    .chart-container { height: 350px; }
                 }
                 @media (max-width: 768px) {
-                    .dashboard-page { padding: 15px; }
+                    .dashboard-page { padding: 15px 15px 80px 15px; }
                     .dashboard-grid { gap: 20px; }
                     .filter-group label { font-size: 0.9rem; }
-                    .chart-caption { font-size: 0.9rem; }
+                    .filter-group select { min-width: 100%; }
+                }
+                @media (max-width: 480px) {
+                    .dashboard-title { font-size: 1rem; }
+                    .chart-container { height: 280px; }
+                    .line-chart-box, .bar-chart-box { height: 250px; }
+                    .chart-caption { font-size: 0.85rem; padding: 0 10px; }
+                    .filter-group select { font-size: 0.85rem; padding: 6px 10px; }
+                    .full-width-chart { margin-bottom: 40px; }
                 }
             ` }} />
 
@@ -266,14 +504,14 @@ const Dashboard = () => {
                             <CustomDatePicker 
                                 label="Chọn ngày" 
                                 value={selectedDate} 
-                                onChange={(e) => setSelectedDate(e.target.value)} 
+                                onChange={(e) => setSelectedDate(e.target.value)} // Cập nhật ngày khi người dùng bắt đầu nhập liệu 
                             />
                         </div>
                     </aside>
 
                     <section className="chart-main">
                         <div className="chart-container">
-                            <canvas ref={radarChartRef}></canvas>
+                            <canvas ref={radarChartRef}></canvas> {/* Tạo bieu do radar */}
                         </div>
                         <p className="chart-caption">Biểu đồ lượng calo theo từng loại thực phẩm nạp vào trong ngày</p>
                     </section>
@@ -286,9 +524,9 @@ const Dashboard = () => {
                             value={selectedWeek} 
                             onChange={(e) => setSelectedWeek(e.target.value)}
                         >
-                            <option>Tuần 1 tháng 8/2024</option>
-                            <option>Tuần 2 tháng 8/2024</option>
-                            <option>Tuần 3 tháng 8/2024</option>
+                            {weekOptions.map(option => (
+                                <option key={option} value={option}>{option}</option>
+                            ))}
                         </select>
                     </div>
                     <div className="line-chart-box">
@@ -304,9 +542,9 @@ const Dashboard = () => {
                             value={selectedMonth} 
                             onChange={(e) => setSelectedMonth(e.target.value)}
                         >
-                            <option>Tháng 8/2024</option>
-                            <option>Tháng 9/2024</option>
-                            <option>Tháng 10/2024</option>
+                            {monthOptions.map(option => (
+                                <option key={option} value={option}>{option}</option>
+                            ))}
                         </select>
                     </div>
                     <div className="bar-chart-box">

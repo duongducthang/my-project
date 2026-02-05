@@ -1,63 +1,113 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+//Trang Account-Đăng xuất-Chỉnh sửa Profile
+
+import { useEffect, useState } from 'react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import UserLayout from './UserLayout'; // Import UserLayout để kế thừa Header
 import avatarImg from '../assets/img/Avatar.svg';
 import iconImg from '../assets/icon/icon1.svg';
 
 const AccountLayout = () => {
-    const location = useLocation();
-    const isActive = (path) => location.pathname.startsWith(path);
+    const location = useLocation();  // Lấy thông tin vị trí hiện tại để xác định link đang active
+    const navigate = useNavigate();
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        const loadUser = () => {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                setUser(JSON.parse(savedUser));
+            } else {
+                navigate('/login');
+            }
+        };
+
+        loadUser();
+
+        // Lắng nghe sự kiện thay đổi dữ liệu người dùng
+        window.addEventListener('storage', loadUser);
+        window.addEventListener('userUpdate', loadUser); 
+
+        return () => {
+            window.removeEventListener('storage', loadUser);
+            window.removeEventListener('userUpdate', loadUser);
+        };
+    }, [navigate]);
+
+    const handleLogout = (e) => {
+        e.preventDefault();
+        localStorage.removeItem('currentUser');
+        navigate('/login');
+    };
+
+    const isActive = (path) => location.pathname.startsWith(path); // Hàm kiểm tra link active
 
     return (
         // Bọc toàn bộ bằng UserLayout để có header chung
         <UserLayout>
-            <div style={styles.bodyWrapper}>
+            <style>{`
+                .body-wrapper { 
+                    display: flex; 
+                    max-width: 1200px; 
+                    margin: 20px auto; 
+                    width: 100%; 
+                    min-height: calc(100vh - 80px); 
+                    background-color: #fff; 
+                    border-radius: 8px; 
+                    overflow: hidden; 
+                }
+                @media (max-width: 992px) {
+                    .body-wrapper { flex-direction: column !important; margin: 10px auto !important; padding: 0 !important; width: calc(100% - 20px) !important; }
+                    .sidebar-container { width: 100% !important; border-right: none !important; border-bottom: 1px solid #f0f0f0 !important; padding: 15px !important; }
+                    .main-content-container { padding: 15px !important; width: 100% !important; }
+                    .nav-menu { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; margin-left: 0 !important; }
+                    .menu-item { width: calc(50% - 4px) !important; margin-bottom: 0 !important; }
+                    .user-info-box { margin-bottom: 15px !important; padding-bottom: 15px !important; }
+                    .menu-title { font-size: 13px !important; margin-bottom: 10px !important; }
+                }
+                @media (max-width: 576px) {
+                    .menu-item { width: 100% !important; }
+                }
+            `}</style>
+            <div className="body-wrapper">
                 {/* --- SIDEBAR BÊN TRÁI --- */}
-                <aside style={styles.sidebar}>
-                    <div style={styles.userInfo}>
-                        <img src={avatarImg} alt="Avatar" style={styles.avatar} />
+                <aside style={styles.sidebar} className="sidebar-container"> 
+                    <div style={styles.userInfo} className="user-info-box">
+                        <img src={user?.avatar || avatarImg} alt="Avatar" style={styles.avatar} />
                         <div>
-                            <div style={styles.userName}>aaaaa</div>
-                            <Link to="/account/profile" style={styles.editProfileLink}>Sửa hồ sơ</Link>
+                            <div style={styles.userName}>{user ? user.userName || user.fullName : 'Guest'}</div>
+                            <Link to="/account/profile" style={styles.editProfileLink}>Sửa hồ sơ</Link> {/* Link đến trang chỉnh sửa hồ sơ */}
                         </div>
                     </div>
 
-                    <nav style={styles.nav}>
-                        <div style={styles.menuTitle}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    <nav style={styles.nav} className="nav-container"> {/* Menu điều hướng bên trái */}
+                        <div style={styles.menuTitle}> { /* Tiêu đề menu */ }
+                            <span style={{ display: 'inline-flex', alignItems: 'center' }}> {/* Icon và text nằm ngang */}
                                 <img src={iconImg} style={{ width: '18px', marginRight: '5px' }} />
                                 Tài khoản của tôi
                             </span>
                         </div>
-                        <ul style={styles.menuList}>
-                            <li>
-                                <Link to="/account/profile" style={isActive('/account/profile') ? styles.activeLink : styles.link}>
-                                    Hồ sơ
-                                </Link>
+                        <ul style={styles.menuList} className="nav-menu"> {/* Danh sách menu */}
+                            <li className="menu-item">
+                                <Link to="/account/profile" style={{...styles.link, backgroundColor: isActive('/account/profile') ? '#f0f0f0' : 'transparent', fontWeight: isActive('/account/profile') ? '600' : '400', padding: '10px'}}>Hồ sơ</Link>
                             </li>
-                            <li>
-                                <Link to="/account/address" style={isActive('/account/address') ? styles.activeLink : styles.link}>
-                                    Địa chỉ
-                                </Link>
+                            <li className="menu-item">
+                                <Link to="/account/address" style={{...styles.link, backgroundColor: isActive('/account/address') ? '#f0f0f0' : 'transparent', fontWeight: isActive('/account/address') ? '600' : '400', padding: '10px'}}>Địa chỉ</Link>
                             </li>
-                            <li>
-                                <Link to="/account/change-password" style={isActive('/account/change-password') ? styles.activeLink : styles.link}>
-                                    Đổi mật khẩu
-                                </Link>
+                            <li className="menu-item">
+                                <Link to="/account/change-password" style={{...styles.link, backgroundColor: isActive('/account/change-password') ? '#f0f0f0' : 'transparent', fontWeight: isActive('/account/change-password') ? '600' : '400', padding: '10px'}}>Đổi mật khẩu</Link>
+                            </li>
+                            <li className="menu-item">
+                                <a href="/login" onClick={handleLogout} style={{...styles.link, color: '#c94a4a', textDecoration: 'none', padding: '10px'}}> {/* Link đến trang đăng nhập, màu đỏ để nổi bật */}
+                                    Đăng xuất
+                                </a>
                             </li>
                         </ul>
-                        
-                        {/* Nút Đăng xuất */}
-                        <div style={{marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #f0f0f0'}}>
-                             <Link to="/login" style={{...styles.link, color: '#c94a4a'}}>
-                                Đăng xuất
-                            </Link>
-                        </div>
                     </nav>
                 </aside>
 
                 {/* --- NỘI DUNG CHÍNH --- */}
-                <main style={styles.mainContent}>
-                    <Outlet /> 
+                <main style={styles.mainContent} className="main-content-container"> 
+                    <Outlet />  {/* Nơi hiển thị nội dung con dựa trên route con */}
                 </main>
             </div>
         </UserLayout>
@@ -66,18 +116,18 @@ const AccountLayout = () => {
 
 // Styles
 const styles = {
-    bodyWrapper: { display: 'flex', maxWidth: '1200px', margin: '20px auto', width: '100%', minHeight: 'calc(100vh - 80px)', backgroundColor: '#fff', borderRadius: '8px', overflow: 'hidden' },
-    sidebar: { width: '250px', padding: '30px 20px', borderRight: '1px solid #f0f0f0', background: '#fafafa' },
-    userInfo: { display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '30px', paddingBottom: '20px', borderBottom: '1px solid #f0f0f0' },
-    avatar: { width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover' },
-    userName: { fontWeight: '600', fontSize: '15px', color: '#222' },
-    editProfileLink: { fontSize: '13px', color: '#888', textDecoration: 'none', hover: {color: '#007bff'} },
-    nav: {},
-    menuTitle: { fontSize: '14px', fontWeight: 'bold', marginBottom: '15px', color: '#333', textTransform: 'uppercase', letterSpacing: '0.5px' },
-    menuList: { listStyle: 'none', padding: 0, margin: 0 },
-    link: { display: 'block', padding: '10px 15px', textDecoration: 'none', color: '#555', fontSize: '14px', borderRadius: '6px', marginBottom: '5px' },
-    activeLink: { display: 'block', padding: '10px 15px', textDecoration: 'none', fontSize: '14px', fontWeight: '600', backgroundColor: '#e9f5ff', color: '#007bff', borderRadius: '6px', marginBottom: '5px' },
-    mainContent: { flex: 1, padding: '30px 40px' }
+    bodyWrapper: { display: 'flex', maxWidth: '1200px', margin: '20px auto', width: '100%', minHeight: 'calc(100vh - 80px)', backgroundColor: '#fff', borderRadius: '8px', overflow: 'hidden' }, // khung chính chứa sidebar và nội dung
+    sidebar: { width: '250px', padding: '30px 20px', borderRight: '1px solid #f0f0f0', background: '#fafafa' }, // thanh bên trái
+    userInfo: { display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '30px', paddingBottom: '20px', borderBottom: '1px solid #f0f0f0' }, // thông tin người dùng ở trên cùng sidebar
+    avatar: { width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover' },// ảnh đại diện
+    userName: { fontWeight: '700', fontSize: '15px', color: '#262626' },// tên người dùng
+    editProfileLink: { fontSize: '13px', color: '#138CE3', textDecoration: 'none', hover: {color: '#007bff'} }, // link sửa hồ sơ
+    nav: {},// khung menu điều hướng
+    menuTitle: { fontSize: '14px', marginBottom: '5px', color: '#00000',fontWeight:'bold'},// tiêu đề menu
+    menuList: { listStyle: 'none', padding: 0, margin: 0,marginLeft:'10px'},// danh sách menu
+    link: { display: 'block', padding: '10px 15px', textDecoration: 'none', color: '#555', fontSize: '14px', borderRadius: '6px', marginBottom: '5px' },// style link menu
+    activeLink: { display: 'block', padding: '10px 15px', textDecoration: 'none', fontSize: '14px', fontWeight: '600', color: '#138CE3', marginBottom: '5px' },// style link menu khi active
+    mainContent: { flex: 1, padding: '30px 40px' }// khung nội dung chính
 };
 
 export default AccountLayout;

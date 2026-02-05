@@ -25,19 +25,16 @@ function App() {
                 <Route path="/register" element={<Register />} />
 
                 {/* --- NHÓM 2: USER LAYOUT (Chỉ có Header, KHÔNG Sidebar) --- */}
-                {/* Dành cho các trang tính năng chính, cần màn hình rộng */}
-                <Route element={<UserLayout />}>
+                <Route element={<UserLayout />}>f
                     <Route path="/" element={<Navigate to="/blog" />} />
                     <Route path="/blog" element={<Blog />} />
                     <Route path="/bmi" element={<BMICalculator />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/calorie" element={<CalorieCalculator />} />
                     <Route path="/calorie-tracker" element={<CalorieTracker />} />
-                    {/* Thêm các trang khác không cần sidebar ở đây */}
                 </Route>
 
                 {/* --- NHÓM 3: ACCOUNT LAYOUT (Có Header + Sidebar) --- */}
-                {/* Dành riêng cho các trang cài đặt tài khoản */}
                 <Route path="/account" element={<AccountLayout />}>
                     <Route index element={<Navigate to="profile" />} />
                     <Route path="profile" element={<Profile />} />
