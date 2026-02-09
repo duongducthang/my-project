@@ -13,12 +13,10 @@ import TitleImg from '../../assets/img/img-blog.svg';
 
 
 const Blog = () => {
-    // 1. STATE QUẢN LÝ CHỨC NĂNG VÀ GIAO DIỆN
     const [selectedFood, setSelectedFood] = useState(null); // Lưu món ăn người dùng nhấn vào để xem chi tiết (Modal)
     const [searchTerm, setSearchTerm] = useState("");      // Lưu từ khóa tìm kiếm mà người dùng nhập
     const [activeCategory, setActiveCategory] = useState("Tất cả"); // Danh mục hiện tại đang được chọn để lọc
 
-    // Cấu trúc Menu Sidebar 
     const sidebarMenu = [
         { id: 'seasonal', title: "Thực đơn theo mùa", isStatic: true },
         { id: 'dishes', title: "Thực đơn theo món", isStatic: true },
