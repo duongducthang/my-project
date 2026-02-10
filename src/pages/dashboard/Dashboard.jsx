@@ -7,14 +7,13 @@ import CustomDatePicker from '../../components/common/CustomDatePicker';
 
 const Dashboard = () => {
     // KHỞI TẠO REFS VÀ STATE
-    const radarChartRef = useRef(null); // Ref cho biểu đồ Radar (tròn)
-    const lineChartRef = useRef(null);  // Ref cho biểu đồ Line (đường)
-    const barChartRef = useRef(null);   // Ref cho biểu đồ Bar (cột)
+    const radarChartRef = useRef(null); 
+    const lineChartRef = useRef(null); 
+    const barChartRef = useRef(null);   
     
-    const [dailyLogs, setDailyLogs] = useState([]); // Lưu danh sách lịch sử calo từ localStorage
-    const lastLogsRef = useRef(""); // Lưu chuỗi JSON cuối cùng để so sánh, tránh re-render thừa
+    const [dailyLogs, setDailyLogs] = useState([]);
+    const lastLogsRef = useRef(""); 
     
-    // Hàm hỗ trợ định dạng ngày YYYY-MM-DD theo giờ địa phương chuẩn
     const formatDate = (date) => {
         const d = new Date(date);
         const year = d.getFullYear();
@@ -23,27 +22,23 @@ const Dashboard = () => {
         return `${year}-${month}-${day}`;
     };
 
-    // Hàm an toàn để lấy giá trị số từ kcal
     const parseKcal = (val) => {
         const num = parseFloat(val);
         return isNaN(num) ? 0 : num;
     };
 
-    const [selectedDate, setSelectedDate] = useState(formatDate(new Date())); // Ngày đang chọn (mặc định hôm nay)
+    const [selectedDate, setSelectedDate] = useState(formatDate(new Date())); 
     
-    // Khởi tạo tháng/năm hiện tại để làm bộ lọc
     const now = new Date();
     const currentMonthYear = `Tháng ${now.getMonth() + 1}/${now.getFullYear()}`;
     const [selectedWeek, setSelectedWeek] = useState(`Tuần 1 tháng ${now.getMonth() + 1}/${now.getFullYear()}`);
     const [selectedMonth, setSelectedMonth] = useState(currentMonthYear);
     
-    //  SIDE EFFECTS - Tải dữ liệu từ localStorage khi component mount và khi có thay đổi
     useEffect(() => {
         const loadLogs = () => {
             try {
                 const saved = localStorage.getItem('calorie_logs');
                 
-                // Chỉ cập nhật nếu dữ liệu thực sự thay đổi (so sánh chuỗi JSON)
                 if (saved !== lastLogsRef.current) {
                     lastLogsRef.current = saved;
                     if (saved) {
@@ -60,10 +55,8 @@ const Dashboard = () => {
             }
         };
 
-        // Tải lần đầu khi mount
         loadLogs();
 
-        // Lắng nghe sự kiện 'storage' để đồng bộ dữ liệu giữa các tab/component
         const handleStorageChange = (e) => {
             if (e.key === 'calorie_logs') {
                 loadLogs();
@@ -72,7 +65,6 @@ const Dashboard = () => {
 
         window.addEventListener('storage', handleStorageChange);
         
-        // Kiểm tra định kỳ để đồng bộ trong cùng tab (dùng interval lớn hơn để tránh lag)
         const interval = setInterval(loadLogs, 2000);
 
         return () => {
@@ -81,42 +73,35 @@ const Dashboard = () => {
         };
     }, []);
 
-    // Tạo danh sách các tuần cho bộ lọc dựa trên dữ liệu thực tế và thời gian hiện tại
     const weekOptions = useMemo(() => {
         const options = [];
         const now = new Date();
         
-        // Tìm ngày xa nhất trong quá khứ từ dailyLogs
         let startDate = new Date();
         if (dailyLogs.length > 0) {
             const allDates = dailyLogs.map(log => new Date(log.date));
             startDate = new Date(Math.min(...allDates));
         }
         
-        // Luôn lấy ít nhất là từ 4 tuần trước nếu không có dữ liệu cũ hơn
         const fourWeeksAgo = new Date();
         fourWeeksAgo.setDate(now.getDate() - 28);
         if (startDate > fourWeeksAgo) startDate = fourWeeksAgo;
 
-        // Duyệt từ ngày hiện tại ngược về quá khứ theo từng tuần
         let current = new Date(now);
         while (current >= startDate) {
             const month = current.getMonth() + 1;
             const year = current.getFullYear();
             
-            // Tính xem ngày này thuộc tuần mấy của tháng
             const firstDayOfMonth = new Date(year, month - 1, 1);
             const weekNum = Math.ceil((current.getDate() + firstDayOfMonth.getDay()) / 7);
             options.push(`Tuần ${weekNum} tháng ${month}/${year}`);
             
-            // Lùi lại 7 ngày
             current.setDate(current.getDate() - 7);
         }
         
         return [...new Set(options)]; 
     }, [dailyLogs]);
 
-    // Tạo danh sách các tháng cho bộ lọc dựa trên dữ liệu thực tế
     const monthOptions = useMemo(() => {
         const options = [];
         const now = new Date();
@@ -127,7 +112,6 @@ const Dashboard = () => {
             startDate = new Date(Math.min(...allDates));
         }
 
-        // Luôn lấy ít nhất là 6 tháng trước
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(now.getMonth() - 6);
         if (startDate > sixMonthsAgo) startDate = sixMonthsAgo;
@@ -137,13 +121,11 @@ const Dashboard = () => {
             options.push(`Tháng ${current.getMonth() + 1}/${current.getFullYear()}`);
             current.setMonth(current.getMonth() - 1);
             
-            // Tránh vòng lặp vô tận nếu có lỗi logic
             if (options.length > 100) break; 
         }
         return options;
     }, [dailyLogs]);
 
-    // Tự động cập nhật giá trị mặc định cho bộ lọc nếu giá trị hiện tại không còn hợp lệ
     useEffect(() => {
         if (weekOptions.length > 0 && (!selectedWeek || !weekOptions.includes(selectedWeek))) {
             setSelectedWeek(weekOptions[0]);
@@ -153,14 +135,9 @@ const Dashboard = () => {
         }
     }, [weekOptions, monthOptions, selectedWeek, selectedMonth]);
 
-    //  CÁC HÀM HỖ TRỢ XỬ LÝ DỮ LIỆU (HELPER FUNCTIONS)
-    
-    // Lấy dữ liệu Calo thực tế cho biểu đồ Radar dựa trên ngày được chọn
-    // Hàm này sẽ trả về danh sách tên món ăn và lượng calo tương ứng của ngày đó
     const getRadarData = (date) => {
         const dayLogs = dailyLogs.filter(log => log.date === date);
-        
-        // Nhóm các món ăn trùng tên và cộng dồn lượng calo
+    
         const foodTotals = dayLogs.reduce((acc, curr) => {
             const name = curr.food;
             acc[name] = (acc[name] || 0) + parseKcal(curr.kcal);
@@ -170,7 +147,6 @@ const Dashboard = () => {
         const labels = Object.keys(foodTotals);
         const data = Object.values(foodTotals);
 
-        // Nếu không có dữ liệu cho ngày này, trả về giá trị mặc định để biểu đồ không bị lỗi
         if (labels.length === 0) {
             return {
                 labels: ['Chưa có dữ liệu'],
@@ -181,7 +157,6 @@ const Dashboard = () => {
         return { labels, data };
     };
 
-    // Hàm chuyển đổi chuỗi "Tuần X tháng Y/Z" thành mảng các ngày trong tuần đó (bắt đầu từ Thứ 2)
     const getWeekRange = (weekStr) => {
         const match = weekStr.match(/Tuần (\d+) tháng (\d+)\/(\d+)/);
         if (!match) return null;
@@ -203,7 +178,7 @@ const Dashboard = () => {
         return dates;
     };
 
-    // Hàm chia tháng thành các tuần thực tế để hiển thị trên biểu đồ cột
+   
     const getMonthWeeks = (monthStr) => {
         const match = monthStr.match(/Tháng (\d+)\/(\d+)/);
         if (!match) return [];
@@ -216,7 +191,6 @@ const Dashboard = () => {
         let currentDay = 1;
         while (currentDay <= lastDay.getDate()) {
             const weekDates = [];
-            // Một tuần tối đa 7 ngày hoặc đến hết tháng
             for (let i = 0; i < 7 && currentDay <= lastDay.getDate(); i++) {
                 weekDates.push(formatDate(new Date(year, month - 1, currentDay)));
                 currentDay++;
@@ -226,7 +200,6 @@ const Dashboard = () => {
         return weeks;
     };
 
-    // Lấy dữ liệu Calo tổng hợp theo từng ngày trong tuần cho biểu đồ Line
     const getLineData = (week) => {
         const weekDates = getWeekRange(week);
         if (!weekDates) return [0, 0, 0, 0, 0, 0, 0];
@@ -237,11 +210,8 @@ const Dashboard = () => {
         });
     };
 
-    // Lấy dữ liệu Calo theo từng loại thực phẩm trong các tuần của tháng cho biểu đồ Bar
     const getBarData = (month) => {
         const weeks = getMonthWeeks(month);
-        
-        // Lấy danh sách tất cả các món ăn duy nhất có trong dữ liệu logs
         const foodLabels = [...new Set(dailyLogs.map(log => log.food))];
         
         if (foodLabels.length === 0 || weeks.length === 0) return { labels: [], datasets: [] };
@@ -266,9 +236,7 @@ const Dashboard = () => {
         return { labels: weekLabels, datasets };
     };
 
-    // KHỞI TẠO VÀ CẬP NHẬT BIỂU ĐỒ (CHART.JS)
     
-    // --- BIỂU ĐỒ 1: RADAR CHART (Calo theo loại thực phẩm trong ngày) ---
     useEffect(() => {
         if (!radarChartRef.current) return;
         const radarCtx = radarChartRef.current.getContext('2d');
@@ -354,7 +322,7 @@ const Dashboard = () => {
         return () => radarChart.destroy();
     }, [selectedDate, dailyLogs]);
 
-    // --- BIỂU ĐỒ 2: LINE CHART (Tổng calo theo các ngày trong tuần) ---
+    
     useEffect(() => {
         if (!lineChartRef.current) return;
         const lineCtx = lineChartRef.current.getContext('2d');
@@ -400,7 +368,7 @@ const Dashboard = () => {
         return () => lineChart.destroy();
     }, [selectedWeek, dailyLogs]);
 
-    // --- BIỂU ĐỒ 3: BAR CHART (Calo theo loại thực phẩm qua các tuần) ---
+
     useEffect(() => {
         if (!barChartRef.current) return;
         const barCtx = barChartRef.current.getContext('2d');
@@ -504,14 +472,14 @@ const Dashboard = () => {
                             <CustomDatePicker 
                                 label="Chọn ngày" 
                                 value={selectedDate} 
-                                onChange={(e) => setSelectedDate(e.target.value)} // Cập nhật ngày khi người dùng bắt đầu nhập liệu 
+                                onChange={(e) => setSelectedDate(e.target.value)}  
                             />
                         </div>
                     </aside>
 
                     <section className="chart-main">
                         <div className="chart-container">
-                            <canvas ref={radarChartRef}></canvas> {/* Tạo bieu do radar */}
+                            <canvas ref={radarChartRef}></canvas> 
                         </div>
                         <p className="chart-caption">Biểu đồ lượng calo theo từng loại thực phẩm nạp vào trong ngày</p>
                     </section>

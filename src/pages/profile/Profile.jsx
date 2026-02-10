@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react';
 import avatarImg from '../../assets/img/Avatar.svg';
 
-//khởi tạo formData với các trường rỗng
 const Profile = () => {
   const [formData, setFormData] = useState({
     id: '',
@@ -16,14 +15,12 @@ const Profile = () => {
     year: ''
   });
 
-  // load data của user  từ localStrorage  on  mout và khi thay đổi storage
   useEffect(() => {
     const loadUserData = () => {
-      const savedUser = localStorage.getItem('currentUser');//lấy dữ liệu
+      const savedUser = localStorage.getItem('currentUser');
       if (savedUser) {
-        const userData = JSON.parse(savedUser);//chuyển từ JSON thành object/array 
+        const userData = JSON.parse(savedUser);
         
-        // Chuyển đổi giới tính từ định dạng cũ (nếu có) sang định dạng mới
         let userGender = userData.gender || '';
         if (userGender === 'male') userGender = 'Nam';
         if (userGender === 'female') userGender = 'Nữ';
@@ -34,7 +31,7 @@ const Profile = () => {
           email: userData.email || '',
           phone: userData.phone || '',
           gender: userGender,
-          day: userData.birthday ? userData.birthday.split('-')[2] : '', //split để tách chuỗi birthday
+          day: userData.birthday ? userData.birthday.split('-')[2] : '',
           month: userData.birthday ? userData.birthday.split('-')[1] : '', 
           year: userData.birthday ? userData.birthday.split('-')[0] : ''
         });
@@ -47,7 +44,6 @@ const Profile = () => {
 
     loadUserData();
 
-    // Lắng nghe sự kiện để cập nhật dữ liệu khi có thay đổi từ nơi khác
     window.addEventListener('storage', loadUserData);
     window.addEventListener('userUpdate', loadUserData);
 
@@ -73,18 +69,15 @@ const Profile = () => {
   const handleAvatarChange = (e) => {// 
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-    
-      //reset thành công/k thành công khi người dùng  bắt đầu chọn 1 file mới
+  
       setError('');
       setSuccess('');
 
-      // Kiểm tra định dạng ảnh
       if (!file.type.startsWith('image/')) {
         setError('Vui lòng chọn đúng định dạng hình ảnh.');
         return;
       }
 
-      // Kiểm tra dung lượng (giới hạn 2MB)
       if (file.size > 2 * 1024 * 1024) {
         setError('Kích thước ảnh không được vượt quá 2MB.');
         return;
@@ -114,7 +107,6 @@ const Profile = () => {
     if (!formData.gender) return 'Vui lòng chọn giới tính.';
     if (!formData.day || !formData.month || !formData.year) return 'Vui lòng điền đầy đủ ngày sinh.';
     
-    // Kiểm tra ngày sinh không được ở tương lai
     const birthDate = new Date(`${formData.year}-${formData.month}-${formData.day}`);
     if (birthDate > new Date()) return 'Ngày sinh không được ở tương lai.';
     
@@ -124,7 +116,6 @@ const Profile = () => {
   const handleUpdate = (e) => {
     e.preventDefault();
     
-    // Xóa các thông báo cũ trước khi kiểm tra
     setError('');
     setSuccess('');
 
@@ -134,17 +125,14 @@ const Profile = () => {
       return;
     }
 
-    // Nếu vẫn còn lỗi (ví dụ từ handleAvatarChange trước đó), không cho cập nhật
     if (error) {
       return;
     }
 
     setIsLoading(true);
-    // Giả lập gọi API và lưu vào localStorage
     setTimeout(() => {
       setIsLoading(false);
       
-      // Tính toán lại tuổi từ ngày sinh mới
       const birthDate = new Date(`${formData.year}-${formData.month}-${formData.day}`);
       const today = new Date();
       let userAge = today.getFullYear() - birthDate.getFullYear();
@@ -158,14 +146,13 @@ const Profile = () => {
         ...formData,
         userName: formData.fullName,
         birthday: `${formData.year}-${formData.month}-${formData.day}`,
-        age: userAge, // Cập nhật tuổi mới vào hồ sơ
+        age: userAge,
         avatar: avatar
       };
 
-      // Cập nhật currentUser
+    
       localStorage.setItem('currentUser', JSON.stringify(updatedUser));
 
-      // Cập nhật user_body_index để đồng bộ sang trang tính calo
       const bodyIndex = JSON.parse(localStorage.getItem('user_body_index') || '{}');
       localStorage.setItem('user_body_index', JSON.stringify({
         ...bodyIndex,
@@ -174,17 +161,14 @@ const Profile = () => {
         updatedAt: new Date().toISOString()
       }));
 
-      // Phát sự kiện để các component khác (Header, Sidebar, CalorieCalculator) cập nhật ngay lập tức
       window.dispatchEvent(new Event('storage'));
       window.dispatchEvent(new CustomEvent('userUpdate', { detail: updatedUser }));
 
-      // Cập nhật users_list
+    
       const users = JSON.parse(localStorage.getItem('users_list') || '[]');
-      // Ưu tiên tìm theo id, nếu không có thì tìm theo email
       const userIndex = users.findIndex(u => (updatedUser.id && u.id === updatedUser.id) || u.email === updatedUser.email);
       
       if (userIndex !== -1) {
-        // Cập nhật thông tin mới vào danh sách người dùng, giữ lại các trường cũ không có trong Profile (như password, address...)
         users[userIndex] = { ...users[userIndex], ...updatedUser };
         localStorage.setItem('users_list', JSON.stringify(users));
       }
@@ -194,7 +178,6 @@ const Profile = () => {
     }, 1000);
   };
 
-  // Tạo mảng dữ liệu cho ngày/tháng/năm
   const days = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
   const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
   const currentYear = new Date().getFullYear();

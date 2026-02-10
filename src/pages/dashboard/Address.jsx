@@ -5,21 +5,19 @@ import AddressModal from '../../components/common/AddressModal';
 
 const Address = () => { 
     //STATE QUẢN LÝ DỮ LIỆU ĐỊA CHỈ
-    const [addresses, setAddresses] = useState([]); // Danh sách các địa chỉ đã lưu
-    const [isModalOpen, setIsModalOpen] = useState(false); // Trạng thái đóng/mở cửa sổ nhập địa chỉ (Modal)
-    const [editingAddress, setEditingAddress] = useState(null); // Lưu thông tin địa chỉ đang được chọn để sửa
-    const [currentUser, setCurrentUser] = useState(null); // Thông tin người dùng hiện tại đang đăng nhập
+    const [addresses, setAddresses] = useState([]); 
+    const [isModalOpen, setIsModalOpen] = useState(false); 
+    const [editingAddress, setEditingAddress] = useState(null); 
+    const [currentUser, setCurrentUser] = useState(null); 
 
     //SIDE EFFECTS (Tự động chạy khi trang web tải xong)
     useEffect(() => {
-        const savedUser = localStorage.getItem('currentUser'); // Lấy dữ liệu người dùng từ bộ nhớ trình duyệt
+        const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
             const user = JSON.parse(savedUser);
             setCurrentUser(user);
             
-            // KIỂM TRA: Nếu người dùng chưa có địa chỉ nào trong danh sách
             if (!user.addresses || user.addresses.length === 0) {
-                // Tạo địa chỉ mặc định từ thông tin đăng ký ban đầu
                 const parts = [user.address, user.district, user.province].filter(Boolean); 
                 const fullAddress = parts.join(', ');
                 
@@ -49,7 +47,7 @@ const Address = () => {
                     setAddresses([]);
                 }
             } else {
-                setAddresses(user.addresses); // Nếu đã có danh sách địa chỉ thì chỉ cần hiển thị ra
+                setAddresses(user.addresses); 
             }
         }
     }, []);
@@ -58,12 +56,10 @@ const Address = () => {
     const updateLocalStorage = (newAddresses) => {
         if (!currentUser) return;
 
-        // Cập nhật cho người dùng hiện tại
         const updatedUser = { ...currentUser, addresses: newAddresses };
         localStorage.setItem('currentUser', JSON.stringify(updatedUser));
         setCurrentUser(updatedUser);
 
-        // Cập nhật đồng bộ vào danh sách tổng (users_list)
         const users = JSON.parse(localStorage.getItem('users_list') || '[]');
         const userIndex = users.findIndex(u => u.email === currentUser.email);
         if (userIndex !== -1) {
@@ -72,7 +68,7 @@ const Address = () => {
         }
     };
 
-    //CÁC HÀM XỬ LÝ SỰ KIỆN
+   
     
     // Lưu địa chỉ (Thêm mới hoặc Cập nhật)
     const handleSave = (addressData) => { 
@@ -88,17 +84,15 @@ const Address = () => {
         
         setAddresses(newAddresses);
         updateLocalStorage(newAddresses);
-        setIsModalOpen(false); // Đóng Modal
-        setEditingAddress(null); // Reset trạng thái sửa
+        setIsModalOpen(false);
+        setEditingAddress(null); 
     };
 
-    // Chuẩn bị thông tin để sửa địa chỉ
     const handleEdit = (address) => { 
         setEditingAddress(address); 
         setIsModalOpen(true); 
     };
 
-    // Xóa địa chỉ khỏi danh sách
     const handleDelete = (addressId) => { 
         if (window.confirm('Bạn có chắc chắn muốn xóa địa chỉ này?')) { 
             const newAddresses = addresses.filter(addr => addr.id !== addressId);
@@ -107,56 +101,54 @@ const Address = () => {
         }
     };
 
-    // Mở Modal để thêm mới
     const openModal = () => { 
         setEditingAddress(null); 
         setIsModalOpen(true); 
     };
 
     return (
-        <div style={{ maxWidth: '800px' }}> {/* Khung chứa chính của trang địa chỉ */}
-            {/* Tiêu đề + Nút Thêm mới */}
+        <div style={{ maxWidth: '800px' }}> 
             <div style={styles.headerRow}> 
                 <h3 style={styles.title}>Địa chỉ</h3>
                 <button style={styles.addBtn} onClick={openModal}>+ Thêm địa chỉ mới</button>
             </div>
 
             {/* Danh sách địa chỉ */}
-            {addresses.map(address => ( // Lặp qua từng địa chỉ để hiển thị 
-                <div key={address.id} style={styles.addressCard}>      {/* Thẻ chứa thông tin địa chỉ */}
-                    <div style={styles.cardHeader}>        {/* Header của thẻ địa chỉ */}
-                        <span style={styles.name}>{address.name}</span>     {/* Tên người nhận */}
+            {addresses.map(address => (  
+                <div key={address.id} style={styles.addressCard}>    
+                    <div style={styles.cardHeader}>       
+                        <span style={styles.name}>{address.name}</span>    
                         <div>
                             <button style={styles.actionBtn} onClick={() => handleEdit(address)}>Cập nhật</button> 
                             <button style={{...styles.actionBtn, ...styles.deleteBtn}} onClick={() => handleDelete(address.id)}>Xóa</button>  
                         </div>
                     </div>
-                    <div style={styles.row}>{address.phone}</div>   {/* Số điện thoại */}
-                    <div style={styles.rowAddress}>{address.fullAddress}</div>    { /* Địa chỉ đầy đủ */ }
+                    <div style={styles.row}>{address.phone}</div>  
+                    <div style={styles.rowAddress}>{address.fullAddress}</div>    
                 </div>
             ))}
 
-            <AddressModal  // Modal Thêm/Cập nhật địa chỉ
-                isOpen={isModalOpen}  // Trạng thái mở/đóng modal
-                onClose={() => setIsModalOpen(false)} // Hàm đóng modal 
-                onSave={handleSave} // Hàm lưu địa chỉ
-                address={editingAddress} // Địa chỉ đang chỉnh sửa (nếu có)
+            <AddressModal  
+                isOpen={isModalOpen} 
+                onClose={() => setIsModalOpen(false)}  
+                onSave={handleSave} 
+                address={editingAddress} 
             />
         </div>
     );
 };
 
 const styles = {
-    headerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '15px', marginBottom: '20px' },// Khung chứa tiêu đề và nút thêm mới
-    title: { margin: 0, fontSize: '16px', fontWeight: 'bold' }, // Tiêu đề trang
-    addBtn: { backgroundColor: '#ffeef5', border: '1px solid #ffc1e3', color: '#333', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }, // Nút Thêm địa chỉ mới
-    addressCard: { padding: '20px 0', borderBottom: '1px solid #eee' },// Thẻ chứa thông tin địa chỉ
-    cardHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '8px' },// Header của thẻ địa chỉ
-    name: { fontWeight: 'bold', fontSize: '14px' },// Tên người nhận
-    actionBtn: { background: 'none', border: 'none', color: '#000', cursor: 'pointer', fontSize: '13px', marginRight: '15px' },// Nút hành động (Cập nhật, Xóa)
-    deleteBtn: { color: 'red' },// Nút Xóa với màu đỏ
-    row: { fontSize: '14px', color: '#555', marginBottom: '4px' },// Hàng thông tin (sđt, địa chỉ)
-    rowAddress: { fontSize: '14px', color: '#666' }// Hàng địa chỉ với màu khác biệt
+    headerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '15px', marginBottom: '20px' },
+    title: { margin: 0, fontSize: '16px', fontWeight: 'bold' },
+    addBtn: { backgroundColor: '#ffeef5', border: '1px solid #ffc1e3', color: '#333', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' },
+    addressCard: { padding: '20px 0', borderBottom: '1px solid #eee' },
+    cardHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '8px' },
+    name: { fontWeight: 'bold', fontSize: '14px' },
+    actionBtn: { background: 'none', border: 'none', color: '#000', cursor: 'pointer', fontSize: '13px', marginRight: '15px' },
+    deleteBtn: { color: 'red' },
+    row: { fontSize: '14px', color: '#555', marginBottom: '4px' },
+    rowAddress: { fontSize: '14px', color: '#666' }
 };
 
 export default Address;

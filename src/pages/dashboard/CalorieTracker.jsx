@@ -2,39 +2,38 @@
 
 import React, { useState } from 'react';
 
+const foodLibrary = [
+    {id: 1, name: 'Thịt gà', unit: '100g',kcal: 239, baseWeight: 100, category: 'Bảng tính calo trong thịt/trứng/hải sản'},
+    {id: 2, name: 'Thịt heo', unit: '100g',kcal: 242.1, baseWeight: 100, category: 'Bảng tính calo trong thịt/trứng/hải sản'},
+    {id: 3, name: 'Trứng gà', unit: '100g (2 quả)', kcal: 155.1, baseWeight: 100, category: 'Bảng tính calo trong thịt/trứng/hải sản'},
+    {id: 4, name: 'Trứng vịt', unit: '70g (1 quả)', kcal: 130, baseWeight: 70, category: 'Bảng tính calo trong thịt/trứng/hải sản'},
+    {id: 5,name: 'Cá ngừ', unit: '100g', kcal: 129.8, baseWeight: 100, 
+        category: 'Bảng tính calo trong thịt/trứng/hải sản' 
+    },
+    {   id: 6, 
+        name: 'Tôm',
+        unit: '100g', 
+        kcal: 99.2,
+        baseWeight: 100, 
+        category: 'Bảng tính calo trong thịt/trứng/hải sản' 
+    },
+    {   id: 7, 
+        name: 'Cua',
+        unit: '100g', 
+        kcal: 103, 
+        baseWeight: 100, 
+        category: 'Bảng tính calo trong thịt/trứng/hải sản' 
+    },
+    
+    // Các món rau củ
+
+    { id: 8, name: 'Súp lơ', unit: '100g', kcal: 25, baseWeight: 100, category: 'Bảng tính calo trong rau củ' },
+    { id: 9, name: 'Dưa hấu', unit: '100g', kcal: 30, baseWeight: 100, category: 'Bảng tính calo trong rau củ' },
+    { id: 10, name: 'Chuối', unit: '100g', kcal: 88, baseWeight: 100, category: 'Bảng tính calo trong rau củ' },
+    { id: 11, name: 'Khoai tây', unit: '100g', kcal: 77, baseWeight: 100, category: 'Bảng tính calo trong rau củ' },
+];
+
 const CalorieTracker = () => {
-    //  DỮ LIỆU THƯ VIỆN MÓN ĂN (Sử dụng để tra cứu lượng Calo)
-    const foodLibrary = [
-        {id: 1, name: 'Thịt gà', unit: '100g',kcal: 239, baseWeight: 100, category: 'Bảng tính calo trong thịt/trứng/hải sản'},
-        {id: 2, name: 'Thịt heo', unit: '100g',kcal: 242.1, baseWeight: 100, category: 'Bảng tính calo trong thịt/trứng/hải sản'},
-        {id: 3, name: 'Trứng gà', unit: '100g (2 quả)', kcal: 155.1, baseWeight: 100, category: 'Bảng tính calo trong thịt/trứng/hải sản'},
-        {id: 4, name: 'Trứng vịt', unit: '70g (1 quả)', kcal: 130, baseWeight: 70, category: 'Bảng tính calo trong thịt/trứng/hải sản'},
-        {id: 5,name: 'Cá ngừ', unit: '100g', kcal: 129.8, baseWeight: 100, 
-            category: 'Bảng tính calo trong thịt/trứng/hải sản' 
-        },
-        {   id: 6, 
-            name: 'Tôm',
-            unit: '100g', 
-            kcal: 99.2,
-            baseWeight: 100, 
-            category: 'Bảng tính calo trong thịt/trứng/hải sản' 
-        },
-        {   id: 7, 
-            name: 'Cua',
-            unit: '100g', 
-            kcal: 103, 
-            baseWeight: 100, 
-            category: 'Bảng tính calo trong thịt/trứng/hải sản' 
-        },
-        
-        // Các món rau củ
-
-        { id: 8, name: 'Súp lơ', unit: '100g', kcal: 25, baseWeight: 100, category: 'Bảng tính calo trong rau củ' },
-        { id: 9, name: 'Dưa hấu', unit: '100g', kcal: 30, baseWeight: 100, category: 'Bảng tính calo trong rau củ' },
-        { id: 10, name: 'Chuối', unit: '100g', kcal: 88, baseWeight: 100, category: 'Bảng tính calo trong rau củ' },
-        { id: 11, name: 'Khoai tây', unit: '100g', kcal: 77, baseWeight: 100, category: 'Bảng tính calo trong rau củ' },
-    ];
-
     // STATE QUẢN LÝ ỨNG DỤNG
     const formatDate = (date) => {
         const d = new Date(date);
@@ -44,19 +43,15 @@ const CalorieTracker = () => {
         return `${year}-${month}-${day}`;
     };
 
-    // Lấy thông tin người dùng từ BMICalculator (nếu có)
-
-    const [selectedCategory, setSelectedCategory] = useState('Bảng tính calo trong thịt/trứng/hải sản'); // Danh mục món ăn hiện tại
-    const [selectedFood, setSelectedFood] = useState(foodLibrary[0]); // Món ăn đang được chọn để thêm vào nhật ký
-    const [quantity, setQuantity] = useState(1);                      // Số lượng (theo đơn vị của món ăn)
-    const [logDate, setLogDate] = useState(formatDate(new Date())); // Ngày ghi nhận nhật ký (mặc định hôm nay)
-    
-    // Danh sách nhật ký calo đã lưu (Tải từ localStorage)
+    const [selectedCategory, setSelectedCategory] = useState('Bảng tính calo trong thịt/trứng/hải sản'); 
+    const [selectedFood, setSelectedFood] = useState(foodLibrary[0]); 
+    const [quantity, setQuantity] = useState(1);                      
+    const [logDate, setLogDate] = useState(formatDate(new Date())); 
     const [dailyLogs, setDailyLogs] = useState(() => {
         const saved = localStorage.getItem('calorie_logs');
         if (saved) return JSON.parse(saved);
         const today = formatDate(new Date());
-        return [ // Dữ liệu mẫu nếu lần đầu sử dụng
+        return [
             { id: 1, date: today, food: 'Thịt gà', qty: 100, kcal: '239', unit: '100g' },
             { id: 2, date: today, food: 'Trứng gà', qty: 100, kcal: '155.1', unit: '100g (2 quả)' },
             { id: 3, date: today, food: 'Súp lơ', qty: 400, kcal: '100', unit: '100g' },
@@ -66,15 +61,13 @@ const CalorieTracker = () => {
         ];
     });
 
-    // SIDE EFFECTS
-    // Tự động lưu dữ liệu vào localStorage mỗi khi danh sách nhật ký thay đổi
     React.useEffect(() => {
         localStorage.setItem('calorie_logs', JSON.stringify(dailyLogs));
     }, [dailyLogs]);
 
-    const [editingId, setEditingId] = useState(null); // ID của món ăn đang được chỉnh sửa (nếu có)
-    const [currentPage, setCurrentPage] = useState(1); // Trang hiện tại trong bảng kết quả
-    const [itemsPerPage, setItemsPerPage] = useState(5); // Số dòng hiển thị trên mỗi trang
+    const [editingId, setEditingId] = useState(null); 
+    const [currentPage, setCurrentPage] = useState(1); 
+    const [itemsPerPage, setItemsPerPage] = useState(5); 
 
     // 3. Hệ thống CSS
     const s = {
@@ -107,27 +100,22 @@ const CalorieTracker = () => {
         btnEdit: { backgroundColor: '#ff4db8', color: '#fff', border: 'none', padding: '5px 12px', borderRadius: '4px', marginRight: '5px', cursor: 'pointer', fontSize: '12px' },
         btnDelete: { backgroundColor: '#fff', color: '#ff4db8', border: '1px solid #ff4db8', padding: '5px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' },
         
-        // Pagination Styles
-        paginationContainer: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '5px', padding: '20px 0' }, // Khung chứa phân trang
+        paginationContainer: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '5px', padding: '20px 0' }, 
         pageBox: { 
             width: '32px', height: '32px', display: 'flex', justifyContent: 'center', alignItems: 'center', 
             border: '1px solid #e0e0e0', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', color: '#666', background: '#fff' 
-        }, // Ô số trang
-        pageActive: { borderColor: '#ff4db8', color: '#ff4db8' }, // Ô số trang đang chọn
-        pageDisabled: { color: '#ccc', cursor: 'not-allowed' }, // Ô số trang không thể bấm
-        dots: { padding: '0 5px', color: '#999' },  // Dấu ... trong phân trang
-        pageSelect: { marginLeft: '10px', height: '32px', padding: '0 10px', border: '1px solid #e0e0e0', borderRadius: '4px', color: '#666' }  // Ô chọn số trang nhanh
+        }, 
+        pageActive: { borderColor: '#ff4db8', color: '#ff4db8' },
+        pageDisabled: { color: '#ccc', cursor: 'not-allowed' }, 
+        dots: { padding: '0 5px', color: '#999' },  
+        pageSelect: { marginLeft: '10px', height: '32px', padding: '0 10px', border: '1px solid #e0e0e0', borderRadius: '4px', color: '#666' }  
     };
 
-    //CÁC HÀM XỬ LÝ (LOGIC)
-    
-    // Thêm một mục mới vào nhật ký hoặc cập nhật mục đang sửa
     const handleAddLog = () => { 
-        const actualQty = quantity * selectedFood.baseWeight; // Tính tổng số gam
-        const calculatedKcal = ((selectedFood.kcal / selectedFood.baseWeight) * actualQty).toFixed(1); // Tính tổng calo
+        const actualQty = quantity * selectedFood.baseWeight; 
+        const calculatedKcal = ((selectedFood.kcal / selectedFood.baseWeight) * actualQty).toFixed(1); 
         
         if (editingId) {
-            // Trường hợp đang chỉnh sửa
             setDailyLogs(dailyLogs.map(log => 
                 log.id === editingId 
                 ? { ...log, date: logDate, food: selectedFood.name, unit: selectedFood.unit, kcal: calculatedKcal, qty: actualQty } 
@@ -135,7 +123,6 @@ const CalorieTracker = () => {
             ));
             setEditingId(null);
         } else {
-            // Trường hợp thêm mới
             const newEntry = { 
                 id: Date.now(),
                 date: logDate,
@@ -146,50 +133,40 @@ const CalorieTracker = () => {
             };
             setDailyLogs([...dailyLogs, newEntry]);
         }
-        setQuantity(1); // Reset số lượng về 1 sau khi xong
+        setQuantity(1); 
     };
 
-    // Xóa một mục khỏi nhật ký (Xóa trực tiếp không cần hỏi)
     const handleDelete = (id) => { 
         setDailyLogs(dailyLogs.filter(item => item.id !== id));
     };
 
-    // Chuẩn bị dữ liệu để chỉnh sửa một mục
     const handleEdit = (log) => { 
         setEditingId(log.id);
         setLogDate(log.date);
         const food = foodLibrary.find(f => f.name === (log.food === 'Dưa hấu..' ? 'Dưa hấu' : log.food));
         if (food) {
             setSelectedFood(food);
-            setQuantity(log.qty / food.baseWeight); // Quy đổi ngược từ gam sang đơn vị
+            setQuantity(log.qty / food.baseWeight); 
         }
-        window.scrollTo({ top: 400, behavior: 'smooth' }); // Cuộn màn hình đến form nhập
+        window.scrollTo({ top: 400, behavior: 'smooth' });
     };
 
-    //LOGIC PHÂN TRANG (PAGINATION)
-    // Tính tổng số trang
     const totalPages = Math.ceil(dailyLogs.length / itemsPerPage) || 1;
-    
-    // Logic chính: Cắt mảng bằng slice() dựa trên currentPage và itemsPerPage
     const currentLogs = dailyLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-    
-    // Vị trí bắt đầu để tính số thứ tự (#)
     const startIndex = (currentPage - 1) * itemsPerPage;
 
-    // Hàm tạo danh sách số trang (1 ... 4 5 6 ...)
     const getPageNumbers = () => {
         const pages = [];
-        // Trường hợp 1: Tổng số trang ít (nhỏ hơn hoặc bằng 7), hiển thị tất cả các số trang
         if (totalPages <= 7) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
         } else {
-            if (currentPage <= 4) {// Nếu đang ở những trang đầu (trang 1 đến trang 4)
+            if (currentPage <= 4) {
                 pages.push(1, 2, 3, 4, 5, '...', totalPages);
-            } else if (currentPage >= totalPages - 3) {  //Nếu đang ở những trang cuối cùng
+            } else if (currentPage >= totalPages - 3) {  
                 pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
-            } else {// Nếu đang ở giữa danh sách trang
+            } else {
                 pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
-            }// Hiện trang đầu, dấu ..., trang trước, trang hiện tại, trang sau, dấu ..., và trang cuối
+            }
         }
         return pages;
     };
@@ -210,7 +187,6 @@ const CalorieTracker = () => {
                     .pagination-container { flex-wrap: wrap !important; justify-content: center !important; gap: 10px !important; }
                 }
             `}</style>
-            {/* ... (Phần bảng tra cứu và Form nhập liệu giữ nguyên không thay đổi) ... */}
             <div style={s.selectBox} className="select-box">
                 <label style={s.label}>Chọn bảng tính</label>
                 <select 
@@ -220,7 +196,6 @@ const CalorieTracker = () => {
                         onChange={(e) => {
                             const newCategory = e.target.value;
                             setSelectedCategory(newCategory);
-                            // Tự động chọn món đầu tiên của danh mục mới để tránh lỗi logic
                             const firstFoodInCategory = foodLibrary.find(f => f.category === newCategory);
                             if (firstFoodInCategory) {
                                 setSelectedFood(firstFoodInCategory);
@@ -318,7 +293,6 @@ const CalorieTracker = () => {
                                 </td>
                             </tr>
                         ))}
-                        {/* Các hàng trống để giữ chiều cao bảng cố định */}
                         {[...Array(Math.max(0, itemsPerPage - currentLogs.length))].map((_, i) => (
                             <tr key={`empty-${i}`} style={{height: '49px'}}>
                                 <td style={s.td}></td>
@@ -331,14 +305,12 @@ const CalorieTracker = () => {
 
             {/* PHÂN TRANG */}
             <div style={s.paginationContainer} className="pagination-container"> 
-                {/* Nút lùi */}
                 <div 
                     style={{...s.pageBox, ...(currentPage === 1 ? s.pageDisabled : {})}} 
                     onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
                 >
                     &lt;
                 </div>
-                {/* Các số trang */}
                 {getPageNumbers().map((p, i) => (
                     p === '...' ? (
                         <span key={`dots-${i}`} style={s.dots}>...</span>
@@ -352,14 +324,14 @@ const CalorieTracker = () => {
                         </div>
                     )
                 ))}
-                {/* Nút tiến */}
+                
                 <div 
                     style={{...s.pageBox, ...(currentPage === totalPages ? s.pageDisabled : {})}} 
                     onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
                 >
                     &gt;
                 </div>
-                {/* Dropdown chọn số mục mỗi trang */}
+                
                 <select 
                     style={s.pageSelect} 
                     value={itemsPerPage} 

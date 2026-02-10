@@ -1,10 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-
-// Layouts
-import UserLayout from './layouts/UserLayout';       // Layout chỉ có Header (cho Blog, BMI...)
-import AccountLayout from './layouts/AccountLayout'; // Layout có Header + Sidebar (cho Profile...)
-
-// Pages
+import UserLayout from './layouts/UserLayout';       
+import AccountLayout from './layouts/AccountLayout'; 
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Blog from './pages/dashboard/Blog';

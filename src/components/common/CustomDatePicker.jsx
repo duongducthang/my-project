@@ -1,67 +1,67 @@
 //Trang tạo lịch đẹp hơn ở dashboard
+// @ts-nocheck
 
 import { useState } from 'react';
 
 const CustomDatePicker = ({ label, value, onChange, name }) => {
-  const [showCalendar, setShowCalendar] = useState(false); //bật tắt popup lịch
-  const [currentView, setCurrentView] = useState(new Date(value || '2024-08-22'));//Date — tháng/năm đang hiển thị trong popup (khởi tạo từ value hoặc fallback '2024-08-22').
+  const [showCalendar, setShowCalendar] = useState(false); 
+  const [currentView, setCurrentView] = useState(new Date(value || '2024-08-22'));
   
-  const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();//trả số ngày trong tháng
-  const firstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();//trả ngày đầu tiên của tháng (0-Chủ nhật, 1-Thứ 2,...)
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];// tên tháng
-  const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];// tên ngày trong tuần
+  const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+  const firstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-  const year = currentView.getFullYear();// lấy năm từ currentView
-  const month = currentView.getMonth();// lấy tháng từ currentView
+  const year = currentView.getFullYear();
+  const month = currentView.getMonth();
 
-  const handlePrevMonth = (e) => {// chuyển tháng trước
-    e.stopPropagation();// ngăn chặn event lan truyền nếu ko nó sẽ ảnh hưởng đến cả phần tử cha
-    setCurrentView(new Date(year, month - 1, 1));// cập nhật currentView về tháng trước
+  const handlePrevMonth = (e) => {
+    e.stopPropagation();
+    setCurrentView(new Date(year, month - 1, 1));
   };
 
-  const handleNextMonth = (e) => {// chuyển tháng sau
-    e.stopPropagation();// ngăn chặn event lan truyền
-    setCurrentView(new Date(year, month + 1, 1)); //cập nhật currentView về tháng sau
+  const handleNextMonth = (e) => {
+    e.stopPropagation();
+    setCurrentView(new Date(year, month + 1, 1)); 
   };
 
-  const handlePrevYear = (e) => {//chuyển năm trước
-    e.stopPropagation();//ngăn chặn event
-    setCurrentView(new Date(year - 1, month, 1));//cập nhật currentView về năm trước
+  const handlePrevYear = (e) => {
+    e.stopPropagation();
+    setCurrentView(new Date(year - 1, month, 1));
   };
 
-  const handleNextYear = (e) => {// chuyển năm sau
-    e.stopPropagation();// ngăn chặn event
-    setCurrentView(new Date(year + 1, month, 1));// cập nhật currentView về năm sau
+  const handleNextYear = (e) => {
+    e.stopPropagation();
+    setCurrentView(new Date(year + 1, month, 1));
   };
 
   const handleDateClick = (day) => {
-    // Tạo chuỗi YYYY-MM-DD dựa trên thời gian địa phương để tránh lỗi lệch múi giờ
-    const formattedDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;// định dạng ngày được chọn
-    onChange({ target: { name, value: formattedDate } });// gọi onChange để cập nhật giá trị ngày được chọn
-    setShowCalendar(false);// đóng popup lịch sau khi chọn ngày
+    const formattedDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    onChange({ target: { name, value: formattedDate } });
+    setShowCalendar(false);
   };
 
-  const renderDays = () => { // hàm để hiển thị các ngày trong tháng
-    const totalDays = daysInMonth(year, month); // lấy tổng số ngày trong tháng hiện tại
-    const firstDay = firstDayOfMonth(year, month);// lấy ngầy đầu tiên của tháng hiện tại
-    const days = [];//mảng để chứa các phần tử ngày
+  const renderDays = () => { 
+    const totalDays = daysInMonth(year, month); 
+    const firstDay = firstDayOfMonth(year, month);
+    const days = [];
 
     // Previous month days (disabled)
-    const prevMonthDays = daysInMonth(year, month - 1);//lấy số ngày của tháng trước
-    for (let i = firstDay - 1; i >= 0; i--) {// thêm các ngày của tháng trước vào đầu lịch nếu tháng ko bắt đầu từ Chủ nhật
-      days.push(<span key={`prev-${i}`} style={styles.dayDisabled}>{prevMonthDays - i}</span>);// thêm ngày đã tắt vào mảng days
+    const prevMonthDays = daysInMonth(year, month - 1);
+    for (let i = firstDay - 1; i >= 0; i--) {
+      days.push(<span key={`prev-${i}`} style={styles.dayDisabled}>{prevMonthDays - i}</span>);
     }
 
     // Current month days
-    for (let d = 1; d <= totalDays; d++) {// thêm các ngày của tháng hiện tại
-      const isSelected = value === `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;// kiểm tra xem ngày hiện tại có phải là ngày được chọn hay ko 
-      days.push(// thêm ngày được chọn vào mảng days
+    for (let d = 1; d <= totalDays; d++) {
+      const isSelected = value === `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      days.push(
         <span 
-          key={d}// khóa duy nhất cho mỗi ngày 
-          style={isSelected ? styles.dayActive : styles.day}// kiểu dáng ngày (nếu được chọn thì dùng kiểu dayActive, ko thì dùng kiểu day)
-          onClick={(e) => {// xử lý sự kiện khi người dùng click vào ngày
-            e.stopPropagation();// ngăn chặn event lan truyền
-            handleDateClick(d);// gọi hàm xử lý khi ngày được click
+          key={d}
+          style={isSelected ? styles.dayActive : styles.day}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDateClick(d);
           }}
         >
           {d}   {/*  hiển thị số ngày */}
@@ -69,76 +69,76 @@ const CustomDatePicker = ({ label, value, onChange, name }) => {
       );
     }
 
-    return days;// trả về mảng các phần tử ngày đã tạo
+    return days;
   };
 
   return (
-    <div style={styles.container}> {/*  container chính của DatePicker */}
-      <div style={styles.inputWrapper} onClick={() => setShowCalendar(!showCalendar)}> {/*  phần tử input hiển thị ngày đã chọn và biểu tượng lịch */}
-        <label style={styles.label}>{label}</label> {/*  nhãn cho DatePicker */}
-        <div style={styles.fieldContainer}> {/*  chứa input và biểu tượng lịch */}
+    <div style={styles.container}> 
+      <div style={styles.inputWrapper} onClick={() => setShowCalendar(!showCalendar)}>
+        <label style={styles.label}>{label}</label>
+        <div style={styles.fieldContainer}> 
           <input
             type="text"  
-            readOnly //chỉ đọc, ko cho phép người dùng nhập trực tiếp
-            name={name} // tên trường input
-            value={value || '2024-08-22'} // giá trị hiển thị trong input (nếu ko có giá trị thì hiển thị '2024-08-22')
-            style={styles.input} // kiểu dáng cho input
+            readOnly 
+            name={name} 
+            value={value || '2024-08-22'} 
+            style={styles.input} 
           />
           <div style={styles.iconWrapper}> {/*  biểu tượng lịch */}
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"> {/*  biểu tượng SVG của lịch */}
-              <rect x="3" y="4" width="18" height="18" rx="2" stroke="#333" strokeWidth="2"/> {/*  hình chữ nhật biểu tượng lịch */}
-              <path d="M16 2V6M8 2V6M3 10H21" stroke="#333" strokeWidth="2" strokeLinecap="round"/> {/*  các chi tiết khác của biểu tượng lịch */}
-              <circle cx="12" cy="16" r="2" fill="#333"/> {/*  hình tròn biểu tượng lịch */}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"> 
+              <rect x="3" y="4" width="18" height="18" rx="2" stroke="#333" strokeWidth="2"/>
+              <path d="M16 2V6M8 2V6M3 10H21" stroke="#333" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="12" cy="16" r="2" fill="#333"/> 
             </svg>
           </div>
         </div>
       </div>
-      <div style={styles.formatText}>MM/DD/YYYY</div> {/*  định dạng ngày hiển thị dưới input */}
+      <div style={styles.formatText}>MM/DD/YYYY</div> 
 
-      {showCalendar && ( // hiển thị  lịch bật lên nếu showCalendar là true
-        <div style={styles.calendarPopup}> {/*  popup-bật lên- lịch */}
-          <div style={styles.calendarHeader}>   {/*  header của lịch với điều khiển chuyển tháng và năm */}
+      {showCalendar && ( 
+        <div style={styles.calendarPopup}> 
+          <div style={styles.calendarHeader}>   
 
-            <div style={styles.headerItem}>     {/*  điều khiển tháng */} 
-              <span style={{cursor:'pointer'}} onClick={handlePrevMonth}>&lt;</span>  {/*  nút chuyển tháng trước */}
-              <span>{monthNames[month]}</span>  {/*  hiển thị tháng hiện tại */}
-              <span style={{cursor:'pointer'}} onClick={handleNextMonth}>&gt;</span> {/*  nút chuyển tháng sau */}
+            <div style={styles.headerItem}>    
+              <span style={{cursor:'pointer'}} onClick={handlePrevMonth}>&lt;</span>  
+              <span>{monthNames[month]}</span> 
+              <span style={{cursor:'pointer'}} onClick={handleNextMonth}>&gt;</span> 
             </div>
 
-            <div style={styles.headerItem}>    {/*  điều khiển năm */}
-              <span style={{cursor:'pointer'}} onClick={handlePrevYear}>&lt;</span>  {/*  nút chuyển năm trước */}
+            <div style={styles.headerItem}>    
+              <span style={{cursor:'pointer'}} onClick={handlePrevYear}>&lt;</span> 
               <span>{year}</span>
-              <span style={{cursor:'pointer'}} onClick={handleNextYear}>&gt;</span> {/*  nút chuyển năm sau */}
+              <span style={{cursor:'pointer'}} onClick={handleNextYear}>&gt;</span>
             </div>
 
           </div>
           
-          <div style={styles.weekDaysGrid}> {/*  hiển thị các ngày trong tuần */}
-            {weekDays.map(day => <span key={day} style={styles.weekDay}>{day}</span>)} {/*  lặp qua mảng weekDays để tạo phần tử cho mỗi ngày */}
+          <div style={styles.weekDaysGrid}> 
+            {weekDays.map(day => <span key={day} style={styles.weekDay}>{day}</span>)}
           </div>
 
-          <div style={styles.daysGrid}> {/*  hiển thị các ngày trong tháng */}
-            {renderDays()} {/*  gọi hàm renderDays để tạo các phần tử ngày */}
+          <div style={styles.daysGrid}> 
+            {renderDays()}
           </div>
 
-          <div style={styles.calendarFooter}> {/*  footer của lịch với các nút hành động */}
-            <button style={styles.footerBtn} onClick={(e) => {  // nút clear
-              e.stopPropagation(); // ngăn chặn event lan truyền
-              onChange({ target: { name, value: '' } });// gọi onChange để xóa giá trị ngày đã chọn
-              setShowCalendar(false); // đóng popup lịch
+          <div style={styles.calendarFooter}> 
+            <button style={styles.footerBtn} onClick={(e) => { 
+              e.stopPropagation(); 
+              onChange({ target: { name, value: '' } });
+              setShowCalendar(false); 
             }}>
               Clear
             </button> 
 
-            <div style={styles.footerRight}> {/* nhóm nút bên phải */}
-              <button style={styles.footerBtn} onClick={(e) => { // nút cancel
-                e.stopPropagation(); // ngăn chặn event lan truyền
-                setShowCalendar(false); // đóng popup lịch
+            <div style={styles.footerRight}> 
+              <button style={styles.footerBtn} onClick={(e) => {
+                e.stopPropagation(); 
+                setShowCalendar(false); 
               }}>
                 Cancel
               </button>
 
-              <button style={styles.footerBtnActive} onClick={(e) => { // nút OK
+              <button style={styles.footerBtnActive} onClick={(e) => { 
                 e.stopPropagation(); 
                 setShowCalendar(false); 
               }}>
@@ -152,8 +152,8 @@ const CustomDatePicker = ({ label, value, onChange, name }) => {
   );
 };
 
-const styles = { // kiểu dáng cho các phần tử trong DatePicker
-      container: { // container chính
+const styles = { 
+      container: { 
         display: 'flex',
         flexDirection: 'column',
         gap: '4px',
@@ -161,7 +161,7 @@ const styles = { // kiểu dáng cho các phần tử trong DatePicker
         position: 'relative',
         fontFamily: 'sans-serif',
       },
-      inputWrapper: { // phần tử input
+      inputWrapper: {
         position: 'relative',
         border: '2px solid #7c69a3',
         borderRadius: '8px',
@@ -171,7 +171,7 @@ const styles = { // kiểu dáng cho các phần tử trong DatePicker
         flexDirection: 'column',
         cursor: 'pointer',
       },
-      label: { // nhãn
+      label: { 
         position: 'absolute',
         top: '-10px',
         left: '12px',
@@ -182,13 +182,13 @@ const styles = { // kiểu dáng cho các phần tử trong DatePicker
         fontWeight: '500',
         zIndex: 1,
       },
-      fieldContainer: { // chứa input và biểu tượng lịch
+      fieldContainer: { 
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         width: '100%',
       },
-      input: { // kiểu dáng cho input
+      input: { 
         border: 'none',
         outline: 'none',
         fontSize: '16px',
@@ -197,7 +197,7 @@ const styles = { // kiểu dáng cho các phần tử trong DatePicker
         backgroundColor: 'transparent',
         cursor: 'pointer',
       },
-      iconWrapper: { // biểu tượng lịch
+      iconWrapper: {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -206,13 +206,12 @@ const styles = { // kiểu dáng cho các phần tử trong DatePicker
         backgroundColor: '#eee',
         marginLeft: '8px',
       },
-      formatText: { // định dạng ngày hiển thị dưới input
+      formatText: { 
         fontSize: '11px',
         color: '#666',
         marginLeft: '12px',
       },
-      calendarPopup: { // popup-bật lên- lịch
-        position: 'absolute',
+      calendarPopup: { 
         top: '100%',
         left: '0',
         marginTop: '10px',
@@ -223,7 +222,7 @@ const styles = { // kiểu dáng cho các phần tử trong DatePicker
         padding: '15px',
         zIndex: 1000,
       },
-      calendarHeader: { // header của lịch với điều khiển chuyển tháng và năm
+      calendarHeader: { 
         display: 'flex',
         justifyContent: 'space-between',
         marginBottom: '20px',
@@ -231,29 +230,29 @@ const styles = { // kiểu dáng cho các phần tử trong DatePicker
         fontSize: '14px',
         fontWeight: '500',
       },
-      headerItem: { // điều khiển tháng/năm
+      headerItem: { 
         display: 'flex',
         gap: '15px',
         alignItems: 'center',
       },
-      weekDaysGrid: { // hiển thị các ngày trong tuần
+      weekDaysGrid: { 
         display: 'grid',
         gridTemplateColumns: 'repeat(7, 1fr)',
         textAlign: 'center',
         marginBottom: '10px',
       },
-      weekDay: { // kiểu dáng cho ngày trong tuần
+      weekDay: {
         fontSize: '12px',
         color: '#666',
         fontWeight: '500',
       },
-      daysGrid: { // hiển thị các ngày trong tháng
+      daysGrid: { 
         display: 'grid',
         gridTemplateColumns: 'repeat(7, 1fr)',
         textAlign: 'center',
         rowGap: '8px',
       },
-      day: { // kiểu dáng cho ngày
+      day: { 
         fontSize: '13px',
         color: '#333',
         padding: '8px 0',
@@ -261,12 +260,12 @@ const styles = { // kiểu dáng cho các phần tử trong DatePicker
         borderRadius: '50%',
         transition: '0.2s',
       },
-      dayDisabled: { // kiểu dáng cho ngày đã tắt
+      dayDisabled: { 
         fontSize: '13px',
         color: '#aaa',
         padding: '8px 0',
       },
-      dayActive: { // kiểu dáng cho ngày được chọn 
+      dayActive: { 
         fontSize: '13px',
         color: '#fff',
         backgroundColor: '#4a4a4a',
@@ -274,17 +273,17 @@ const styles = { // kiểu dáng cho các phần tử trong DatePicker
         borderRadius: '50%',
         cursor: 'pointer',
       },
-      calendarFooter: { // footer của lịch với các nút hành động 
+      calendarFooter: { 
         display: 'flex',
         justifyContent: 'space-between',
         marginTop: '20px',
         paddingTop: '10px',
       },
-      footerRight: { // nhóm nút bên phải 
+      footerRight: { 
         display: 'flex',
         gap: '15px',
       },
-      footerBtn: {  // kiểu dáng cho nút Clear và Cancel
+      footerBtn: {  
         background: 'none',
         border: 'none',
         color: '#7c69a3',
@@ -292,7 +291,7 @@ const styles = { // kiểu dáng cho các phần tử trong DatePicker
         fontWeight: '600',
         cursor: 'pointer',
       },
-      footerBtnActive: { // kiểu dáng cho nút OK
+      footerBtnActive: { 
         background: 'none',
         border: 'none',
         color: '#7c69a3',

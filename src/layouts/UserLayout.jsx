@@ -1,8 +1,3 @@
-/**
- * UserLayout: Thành phần Layout chung cho toàn bộ ứng dụng người dùng.
- * Bao gồm: Header (Logo, Menu điều hướng, Thông tin tài khoản) và phần nội dung chính (Outlet).
- */
-
 import { useState, useEffect } from 'react';
 import { Outlet, Link, NavLink } from 'react-router-dom';
 import AvatarImg from '../assets/img/Avatar.svg';
@@ -11,25 +6,20 @@ import logoImg from '../assets/img/logo.png';
 const UserLayout = ({ children }) => {
   // QUẢN LÝ THÔNG TIN NGƯỜI DÙNG
   const [user, setUser] = useState(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false); // State cho mobile menu
-
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   useEffect(() => {
-    // Hàm lấy thông tin người dùng từ localStorage
     const loadUser = () => {
       const savedUser = localStorage.getItem('currentUser'); 
       if (savedUser) {
-        setUser(JSON.parse(savedUser));// chuyển chuỗi JSON lấy từ localStorage ngược lại thành object/array
+        setUser(JSON.parse(savedUser));
       }
     };
 
     loadUser(); 
 
-    // Lắng nghe sự kiện 'storage' (khi dữ liệu thay đổi từ các tab khác)
     window.addEventListener('storage', loadUser);
-    // Lắng nghe sự kiện tùy chỉnh 'userUpdate' (khi cập nhật profile trong cùng tab)
     window.addEventListener('userUpdate', loadUser);
 
-    // Dọn dẹp các sự kiện khi component bị gỡ bỏ
     return () => {  
       window.removeEventListener('storage', loadUser);
       window.removeEventListener('userUpdate', loadUser);

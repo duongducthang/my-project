@@ -20,7 +20,6 @@ const Register = () => {
         address: ''    
     });
 
-    // Danh sách quận/huyện sẽ thay đổi dựa trên tỉnh/thành đã chọn
     const [districts, setDistricts] = useState([]);
 
     // SIDE EFFECTS - Cập nhật danh sách quận/huyện khi tỉnh/thành thay đổi
@@ -28,7 +27,6 @@ const Register = () => {
         if (formData.province) {
             const selectedLocation = locations.find(loc => loc.name === formData.province);
             setDistricts(selectedLocation ? selectedLocation.districts : []);
-            // Khi đổi tỉnh, reset lại quận/huyện đã chọn trước đó
             setFormData(prev => ({ ...prev, district: '' }));
         } else {
             setDistricts([]);
@@ -37,26 +35,21 @@ const Register = () => {
     }, [formData.province]);
 
     // XỬ LÝ SỰ KIỆN
-    // Cập nhật formData khi người dùng gõ vào các ô nhập liệu
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // Xử lý khi nhấn nút Đăng ký
     const handleRegister = (e) => {
-        e.preventDefault(); // Ngăn trang web tải lại
+        e.preventDefault();
         
-        // Lấy danh sách người dùng đã có từ localStorage
         const users = JSON.parse(localStorage.getItem('users_list') || '[]');
         
-        // Kiểm tra xem Email đã được sử dụng chưa
         if (users.find(u => u.email === formData.email)) {
             alert("Email này đã được đăng ký!");
             return;
         }
 
-        // Tính tuổi từ ngày sinh (nếu có)
         let userAge = '';
         if (formData.birthday) {
             const birthDate = new Date(formData.birthday);
@@ -66,25 +59,20 @@ const Register = () => {
             if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
                 userAge--;
             }
-            // Đảm bảo tuổi không âm
+        
             if (userAge < 0) userAge = 0;
         }
 
-        // Tạo đối tượng người dùng mới với ID duy nhất
         const newUser = { 
             ...formData, 
             id: Date.now(),
-            age: userAge // Lưu thêm tuổi được tính toán
+            age: userAge
         };
         users.push(newUser);
 
-        // Lưu danh sách người dùng mới vào localStorage
-        localStorage.setItem('users_list', JSON.stringify(users));//chuyển object thành chuỗi JSON để lưu
-
-        // Tự động đăng nhập người dùng vừa đăng ký
+        localStorage.setItem('users_list', JSON.stringify(users));
         localStorage.setItem('currentUser', JSON.stringify(newUser)); 
 
-        // Lưu thông tin giới tính và tuổi vào user_body_index để các trang khác dùng ngay
         const bodyIndex = JSON.parse(localStorage.getItem('user_body_index') || '{}');
         localStorage.setItem('user_body_index', JSON.stringify({
             ...bodyIndex,
@@ -92,91 +80,88 @@ const Register = () => {
             age: userAge
         }));
 
-        // Thông báo cho toàn bộ ứng dụng cập nhật thông tin người dùng mới
         window.dispatchEvent(new Event('storage'));
         window.dispatchEvent(new CustomEvent('userUpdate', { detail: newUser }));
 
         console.log("Đăng ký thành công:", newUser);
-        // Chuyển hướng về trang cá nhân
         navigate('/account/profile');
     };
 
     return (
-        <div style={styles.authWrapper}> {/* Khung bao quanh toàn bộ trang đăng ký */}
-            <div style={styles.registerCard}> { /* Thẻ chứa form đăng ký */ }
-                <p style={styles.welcomeText}>Welcome!</p> {/* Chữ nhỏ phía trên tiêu đề */}
-                <h2 style={styles.authTitle}>Đăng ký tài khoản</h2> {/* Tiêu đề trang đăng ký */}
+        <div style={styles.authWrapper}> 
+            <div style={styles.registerCard}> 
+                <p style={styles.welcomeText}>Welcome!</p> 
+                <h2 style={styles.authTitle}>Đăng ký tài khoản</h2>
                 
-                <form onSubmit={handleRegister} style={styles.authForm}>    {/* Form đăng ký */}
-                    {/* ... các trường input khác không đổi ... */}
-                    <div style={styles.inputGroup}> {/* Họ và tên */}
+                <form onSubmit={handleRegister} style={styles.authForm}>  
+                    <div style={styles.inputGroup}> 
                         <label style={styles.label}> 
                             <span style={styles.required}>*</span> Họ và tên
                         </label>
                         <input 
                             name="userName" 
                             type="text" 
-                            style={styles.input}  // Ô nhập liệu
+                            style={styles.input} 
                             placeholder="Họ và tên"
-                            onChange={handleChange} // Cập nhật khi người dùng nhập và thay đổi
+                            onChange={handleChange} 
                             required 
                         />
                     </div>
 
                     {/* Hàng 2: Ngày sinh & Email */}
-                    <div style={styles.rowGrid}> {/* Sử dụng grid để 2 ô nằm ngang */ }
+                    <div style={styles.rowGrid}> 
 
-                        <div style={styles.inputGroup}> {/* Ngày sinh */}
-                            <label style={styles.label}>Ngày sinh</label>  {/* Nhãn cho ô nhập ngày sinh */ } 
+                        <div style={styles.inputGroup}> 
+                            <label style={styles.label}>Ngày sinh</label> 
                             <input 
                                 name="birthday"
                                 type="date" 
-                                style={styles.input}    // Ô nhập liệu
-                                max={new Date().toISOString().split("T")[0]} // Không cho phép chọn ngày tương lai
-                                value={formData.birthday}   // Giá trị từ formData
-                                onChange={handleChange}    // Cập nhật khi người dùng nhập và thay đổi              
+                                style={styles.input}   
+                                max={new Date().toISOString().split("T")[0]} 
+                                value={formData.birthday}   
+                                onChange={handleChange}                
                             />
                         </div>
 
-                        <div style={styles.inputGroup}> {/* Email */}
-                            <label style={styles.label}> { /* Nhãn cho ô nhập email */ }
+                        <div style={styles.inputGroup}> 
+                            <label style={styles.label}> 
                                 <span style={styles.required}>*</span> Email  
                             </label>
                             <input 
                                 name="email"
                                 type="email" 
                                 placeholder="Nhập Email" 
-                                style={styles.input}  // Ô nhập liệu
-                                onChange={handleChange} // Cập nhật khi người dùng nhập và thay đổi
+                                style={styles.input}  
+                                onChange={handleChange}
                                 required 
                             />
                         </div>
                     </div>
 
                     {/* Hàng 3: Mật khẩu & Số điện thoại */}
-                    <div style={styles.rowGrid}>  { /* Sử dụng grid để 2 ô nằm ngang */ }
-                        <div style={styles.inputGroup}> {/* Mật khẩu */}
-                            <label style={styles.label}> { /* Nhãn cho ô nhập mật khẩu */ }
+                    <div style={styles.rowGrid}> 
+                        <div style={styles.inputGroup}> 
+                            <label style={styles.label}> 
                                 <span style={styles.required}>*</span> Mật khẩu 
                             </label>
                             <input 
-                                name="password" //
+                                name="password" 
                                 type="password" 
                                 placeholder="Nhập mật khẩu" 
-                                style={styles.input} // Ô nhập liệu
+                                style={styles.input} 
                                 onChange={handleChange}
                                 required 
                             />
                         </div>
-                        <div style={styles.inputGroup}> {/* Số điện thoại */}
-                            <label style={styles.label}> { /* Nhãn cho ô nhập số điện thoại */ }
+                        <div style={styles.inputGroup}> 
+                            <label style={styles.label}> 
                                 <span style={styles.required}>*</span> Số điện thoại 
                             </label>
                             <input 
                                 name="phone"
                                 type="text" 
                                 placeholder="Nhập số điện thoại" 
-                                style={styles.input} // Ô nhập liệu
+                                style={styles.input} 
                                 onChange={handleChange}
                                 required 
                             />

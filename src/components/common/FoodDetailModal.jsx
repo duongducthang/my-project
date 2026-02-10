@@ -2,10 +2,10 @@
 
 import XImg from '../../assets/img/X.svg';
 
-const FoodDetailModal = ({ food, onClose }) => { //nhận props food và onClose từ component cha
+const FoodDetailModal = ({ food, onClose }) => { 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"> {/* nền mờ phía sau modal */}
-      <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-sm shadow-xl overflow-y-auto animate-in fade-in zoom-in-95 duration-300 relative custom-scrollbar"> {/*khung modal chính với cuộn nội bộ */}
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"> 
+      <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-sm shadow-xl overflow-y-auto animate-in fade-in zoom-in-95 duration-300 relative custom-scrollbar">
         
         {/* Header của Modal */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 sticky top-0 bg-white z-10"> 
@@ -86,6 +86,7 @@ const FoodDetailModal = ({ food, onClose }) => { //nhận props food và onClose
           }
           .custom-scrollbar::-webkit-scrollbar-thumb:hover { / * Chiều ngang */
             background: #999;
+            border-radius: 10px;
           }
         `}} />
       </div>

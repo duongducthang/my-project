@@ -5,24 +5,23 @@ import { useState, useEffect } from 'react';
 const ChangePassword = () => {
     //  STATE QUẢN LÝ DỮ LIỆU VÀ GIAO DIỆN
     const [formData, setFormData] = useState({
-        currentPassword: '', // Mật khẩu hiện tại người dùng nhập
-        newPassword: '',     // Mật khẩu mới muốn thay đổi
-        confirmPassword: ''  // Nhập lại mật khẩu mới để xác nhận
+        currentPassword: '', 
+        newPassword: '',     
+        confirmPassword: '' 
     });
 
-    // Trạng thái hiển thị mật khẩu (ẩn/hiện) cho từng ô nhập liệu
+    
     const [showPassword, setShowPassword] = useState({
         current: false,
         new: false,
         confirm: false
     });
 
-    const [error, setError] = useState('');      // Thông báo lỗi nếu có
-    const [success, setSuccess] = useState('');  // Thông báo thành công
-    const [isLoading, setIsLoading] = useState(false); // Trạng thái đang xử lý (loading)
-    const [currentUser, setCurrentUser] = useState(null); // Thông tin người dùng hiện tại
+    const [error, setError] = useState('');     
+    const [success, setSuccess] = useState('');  
+    const [isLoading, setIsLoading] = useState(false); 
+    const [currentUser, setCurrentUser] = useState(null); 
 
-    // SIDE EFFECTS - Tải dữ liệu từ localStorage khi trang được nạp
     useEffect(() => {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
@@ -30,20 +29,19 @@ const ChangePassword = () => {
         }
     }, []);
 
-    //  XỬ LÝ SỰ KIỆN
-    // Cập nhật giá trị khi người dùng nhập vào các ô input
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-        setError('');   // Xóa thông báo lỗi khi người dùng bắt đầu nhập lại
-        setSuccess(''); // Xóa thông báo thành công
+        setError('');  
+        setSuccess(''); 
     };
 
-    // Hàm xử lý khi nhấn nút Lưu (Đổi mật khẩu)
+  
     const handleSubmit = (e) => {
-        e.preventDefault(); // Ngăn trang web load lại
+        e.preventDefault(); 
         
-        // KIỂM TRA DỮ LIỆU ĐẦU VÀO (Validation)
+        
         if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
             setError('Vui lòng điền đầy đủ tất cả các trường.');
             return;
@@ -64,21 +62,17 @@ const ChangePassword = () => {
             return;
         }
 
-        // KIỂM TRA MẬT KHẨU HIỆN TẠI CÓ ĐÚNG KHÔNG
         if (!currentUser || formData.currentPassword !== currentUser.password) {
             setError('Mật khẩu hiện tại không chính xác.');
             return;
         }
 
-        // THỰC HIỆN CẬP NHẬT (Giả lập gửi lên server với setTimeout)
         setIsLoading(true);
         setTimeout(() => {
-            // Cập nhật thông tin người dùng đang đăng nhập
             const updatedUser = { ...currentUser, password: formData.newPassword };
             localStorage.setItem('currentUser', JSON.stringify(updatedUser));
             setCurrentUser(updatedUser);
 
-            // Cập nhật lại danh sách tất cả người dùng trong hệ thống
             const users = JSON.parse(localStorage.getItem('users_list') || '[]');
             const userIndex = users.findIndex(u => u.email === currentUser.email);
             if (userIndex !== -1) {
@@ -88,27 +82,24 @@ const ChangePassword = () => {
 
             setIsLoading(false);
             setSuccess('Đổi mật khẩu thành công!');
-            // Xóa trắng các ô nhập liệu sau khi thành công
+    
             setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
         }, 1000);
     };
 
-    // Hàm chuyển đổi trạng thái ẩn/hiện mật khẩu
     const toggleVisibility = (field) => {
         setShowPassword(prev => ({ ...prev, [field]: !prev[field] }));
     };
 
-    // --- PHẦN ICON SVG (Được đơn giản hóa bằng cách gộp chung thành một component) ---
     const IconMat = ({ hienThi }) => (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             {hienThi ? (
-                // Icon Mắt Mở - Hiển thị mật khẩu
                 <>
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                     <circle cx="12" cy="12" r="3" />
                 </>
             ) : (
-                // Icon Mắt Đóng - Ẩn mật khẩu
+               
                 <>
                     <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
                     <line x1="1" y1="1" x2="23" y2="23" />
