@@ -3,26 +3,25 @@
 import { useState, useEffect } from 'react';
 
 const ChangePassword = () => {
-    //  STATE QUẢN LÝ DỮ LIỆU VÀ GIAO DIỆN
     const [formData, setFormData] = useState({
-        currentPassword: '', // Mật khẩu hiện tại người dùng nhập
-        newPassword: '',     // Mật khẩu mới muốn thay đổi
-        confirmPassword: ''  // Nhập lại mật khẩu mới để xác nhận
+        currentPassword: '', 
+        newPassword: '',     
+        confirmPassword: '' 
     });
 
-    // Trạng thái hiển thị mật khẩu (ẩn/hiện) cho từng ô nhập liệu
+    
     const [showPassword, setShowPassword] = useState({
         current: false,
         new: false,
         confirm: false
     });
 
-    const [error, setError] = useState('');      // Thông báo lỗi nếu có
-    const [success, setSuccess] = useState('');  // Thông báo thành công
-    const [isLoading, setIsLoading] = useState(false); // Trạng thái đang xử lý (loading)
-    const [currentUser, setCurrentUser] = useState(null); // Thông tin người dùng hiện tại
+    const [error, setError] = useState('');    
+    const [success, setSuccess] = useState(''); 
+    const [isLoading, setIsLoading] = useState(false);
+    const [currentUser, setCurrentUser] = useState(null); 
 
-    // SIDE EFFECTS - Tải dữ liệu từ localStorage khi trang được nạp
+
     useEffect(() => {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
@@ -30,75 +29,85 @@ const ChangePassword = () => {
         }
     }, []);
 
-    //  XỬ LÝ SỰ KIỆN
-    // Cập nhật giá trị khi người dùng nhập vào các ô input
+   
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-        setError('');   // Xóa thông báo lỗi khi người dùng bắt đầu nhập lại
-        setSuccess(''); // Xóa thông báo thành công
+        setError('');   
+        setSuccess(''); 
     };
 
-    // Hàm xử lý khi nhấn nút Lưu (Đổi mật khẩu)
-    const handleSubmit = (e) => {
-        e.preventDefault(); // Ngăn trang web load lại
-        
-        // KIỂM TRA DỮ LIỆU ĐẦU VÀO (Validation)
-        if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
-            setError('Vui lòng điền đầy đủ tất cả các trường.');
-            return;
-        }
 
-        if (formData.newPassword.length < 6) {
-            setError('Mật khẩu mới phải có ít nhất 6 ký tự.');
-            return;
-        }
+const handleSubmit = async (e) => {
+    e.preventDefault();
 
-        if (formData.newPassword !== formData.confirmPassword) {
-            setError('Mật khẩu xác nhận không trùng khớp.');
-            return;
-        }
+   
+    if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
+        setError('Vui lòng điền đầy đủ tất cả các trường.');
+        return;
+    }
 
-        if (formData.currentPassword === formData.newPassword) {
-            setError('Mật khẩu mới không được trùng với mật khẩu hiện tại.');
-            return;
-        }
+    if (formData.newPassword.length < 6) {
+        setError('Mật khẩu mới phải có ít nhất 6 ký tự.');
+        return;
+    }
 
-        // KIỂM TRA MẬT KHẨU HIỆN TẠI CÓ ĐÚNG KHÔNG
-        if (!currentUser || formData.currentPassword !== currentUser.password) {
-            setError('Mật khẩu hiện tại không chính xác.');
-            return;
-        }
+    if (formData.newPassword !== formData.confirmPassword) {
+        setError('Mật khẩu xác nhận không trùng khớp.');
+        return;
+    }
 
-        // THỰC HIỆN CẬP NHẬT (Giả lập gửi lên server với setTimeout)
+    if (formData.currentPassword === formData.newPassword) {
+        setError('Mật khẩu mới không được trùng với mật khẩu hiện tại.');
+        return;
+    }
+
+    try {
         setIsLoading(true);
-        setTimeout(() => {
-            // Cập nhật thông tin người dùng đang đăng nhập
-            const updatedUser = { ...currentUser, password: formData.newPassword };
-            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-            setCurrentUser(updatedUser);
+        setError('');
+        setSuccess('');
 
-            // Cập nhật lại danh sách tất cả người dùng trong hệ thống
-            const users = JSON.parse(localStorage.getItem('users_list') || '[]');
-            const userIndex = users.findIndex(u => u.email === currentUser.email);
-            if (userIndex !== -1) {
-                users[userIndex] = { ...users[userIndex], password: formData.newPassword };
-                localStorage.setItem('users_list', JSON.stringify(users));
-            }
+        const token = localStorage.getItem("access_token");
 
-            setIsLoading(false);
-            setSuccess('Đổi mật khẩu thành công!');
-            // Xóa trắng các ô nhập liệu sau khi thành công
-            setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-        }, 1000);
-    };
+        const res = await fetch("http://localhost:5000/api/users/me/password", {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                currentPassword: formData.currentPassword,
+                newPassword: formData.newPassword,
+            }),
+        });
 
-    // Hàm chuyển đổi trạng thái ẩn/hiện mật khẩu
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || "Đổi mật khẩu thất bại");
+        }
+
+        setSuccess("Đổi mật khẩu thành công!");
+
+        setFormData({
+            currentPassword: "",
+            newPassword: "",
+            confirmPassword: "",
+        });
+
+    } catch (err) {
+        setError(err.message);
+    } finally {
+        setIsLoading(false);
+    }
+};
+
+
     const toggleVisibility = (field) => {
         setShowPassword(prev => ({ ...prev, [field]: !prev[field] }));
     };
 
-    // --- PHẦN ICON SVG (Được đơn giản hóa bằng cách gộp chung thành một component) ---
+    
     const IconMat = ({ hienThi }) => (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             {hienThi ? (
@@ -124,11 +133,11 @@ const ChangePassword = () => {
             </h3>
             
             <form onSubmit={handleSubmit} style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {/* Hiển thị thông báo lỗi hoặc thành công */}
+               
                 {error && <div style={{ color: '#d32f2f', backgroundColor: '#fdecea', padding: '10px', borderRadius: '4px', fontSize: '13px' }}>{error}</div>}
                 {success && <div style={{ color: '#2e7d32', backgroundColor: '#edf7ed', padding: '10px', borderRadius: '4px', fontSize: '13px' }}>{success}</div>}
 
-                {/* Ô nhập Mật khẩu hiện tại */}
+            
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ fontWeight: 'bold', fontSize: '14px' }}><span style={{ color: 'red' }}>*</span> Mật khẩu hiện tại</label>
                     <div style={{ position: 'relative' }}>
@@ -149,7 +158,7 @@ const ChangePassword = () => {
                     </div>
                 </div>
 
-                {/* Ô nhập Mật khẩu mới */}
+            
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ fontWeight: 'bold', fontSize: '14px' }}><span style={{ color: 'red' }}>*</span> Mật khẩu mới</label>
                     <div style={{ position: 'relative' }}>
@@ -170,7 +179,7 @@ const ChangePassword = () => {
                     </div>
                 </div>
 
-                {/* Ô xác nhận mật khẩu mới */}
+                
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ fontWeight: 'bold', fontSize: '14px' }}><span style={{ color: 'red' }}>*</span> Xác nhận mật khẩu mới</label>
                     <div style={{ position: 'relative' }}>
@@ -191,7 +200,6 @@ const ChangePassword = () => {
                     </div>
                 </div>
 
-                {/* Nút submit */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
                     <button 
                         type="submit"

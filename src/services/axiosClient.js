@@ -23,7 +23,6 @@ const axiosClient = axios.create({
   },
 });
 
-// ================= REQUEST INTERCEPTOR =================
 
 axiosClient.interceptors.request.use(
   (config) => {
@@ -48,46 +47,35 @@ axiosClient.interceptors.request.use(
   }
 );
 
-// ================= RESPONSE INTERCEPTOR =================
 
 axiosClient.interceptors.response.use(
   (response) => {
     if (import.meta.env.DEV) {
-      console.log(
-        `[API Response] ${response.config.url}`,
-        response.data
-      );
+      console.log(`[API Response] ${response.config.url}`, response.data);
     }
-
-    return response;
+    return response.data;
   },
   (error) => {
     const status = error.response?.status;
+    const data = error.response?.data;
 
-    // Token expired
     if (status === HTTP_STATUS.UNAUTHORIZED) {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
+      localStorage.removeItem("currentUser");
 
-      if (!window.location.pathname.includes("/login")) {
+      if (
+        !window.location.pathname.includes("/login") &&
+        !window.location.pathname.includes("/register")
+      ) {
         window.location.href = "/login";
       }
     }
 
-    // Server error
-    if (status === HTTP_STATUS.SERVER_ERROR) {
-      console.error("Server error");
-    }
+    const message = data?.message || error.message || "Đã có lỗi xảy ra";
+    console.error(`[API Error] ${status}: ${message}`, data);
 
-    const message =
-      error.response?.data?.message ||
-      error.message ||
-      "Something went wrong";
-
-    return Promise.reject({
-      message,
-      status,
-    });
+    return Promise.reject({ message, status, data });
   }
 );
 

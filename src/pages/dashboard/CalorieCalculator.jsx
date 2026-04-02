@@ -1,10 +1,9 @@
 //Trang chỉ số calo
 
 import { useState, useEffect } from 'react';
+import axiosClient from '../../services/axiosClient';
 
 const CalorieCalculator = () => {
-    // KHỞI TẠO STATE QUẢN LÝ NHẬP LIỆU
-    // Lấy thông tin người dùng từ localStorage (nếu có)
     const getSavedBodyIndex = () => {
         const saved = localStorage.getItem('user_body_index');
         return saved ? JSON.parse(saved) : null;
@@ -14,14 +13,12 @@ const CalorieCalculator = () => {
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
     const [age, setAge] = useState(() => {
-        // Ưu tiên lấy tuổi từ thông tin người dùng đăng nhập (currentUser) để đảm bảo đồng bộ từ Profile
         if (currentUser && (currentUser.age !== undefined && currentUser.age !== null && currentUser.age !== '')) return currentUser.age;
         if (savedData && (savedData.age !== undefined && savedData.age !== null && savedData.age !== '')) return savedData.age;
         return 20;
     });
 
     const [gender, setGender] = useState(() => {
-        // Ưu tiên lấy giới tính từ currentUser
         if (currentUser && currentUser.gender) {
             return currentUser.gender === 'Nam' ? 'male' : 'female';
         }
@@ -29,65 +26,73 @@ const CalorieCalculator = () => {
         return 'female';
     }); 
 
-    const [height, setHeight] = useState(savedData ? savedData.height : '');       // Chiều cao (cm)
-    const [weight, setWeight] = useState(savedData ? savedData.weight : '');        // Cân nặng (kg)
-    const [activity, setActivity] = useState(1.2);    // Mức độ vận động (Hệ số hoạt động chuẩn)
+    const [height, setHeight] = useState(savedData ? savedData.height : '');       
+    const [weight, setWeight] = useState(savedData ? savedData.weight : '');        
+    const [activity, setActivity] = useState(1.2);
     
-    // TDEE (Total Daily Energy Expenditure): Tổng lượng calo cơ thể tiêu thụ trong 1 ngày
+   
     const [tdee, setTdee] = useState(0);  
 
-    // CÁC HÀM XỬ LÝ (LOGIC)
-    
-    // Đồng bộ hóa dữ liệu từ localStorage khi có thay đổi
     useEffect(() => {
-        const handleStorageChange = () => { 
-            const data = getSavedBodyIndex(); 
-            const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        const loadBodyIndex = async () => {
+            try {
+                console.log("[API Request] GET /health/history");
+                const { data } = await axiosClient.get('/health/history');
+                const latest = data?.[0];
+                
+                if (latest) {
+                    console.log("[API Response] Latest body index from DB:", latest);
+                    setHeight(latest.height);
+                    setWeight(latest.weight);
+    
+                    localStorage.setItem('user_body_index', JSON.stringify({
+                        height: latest.height,
+                        weight: latest.weight,
+                        bmi: latest.bmi,
+                        updatedAt: latest.date
+                    }));
+                } else {
+                    const saved = getSavedBodyIndex();
+                    if (saved) {
+                        setHeight(saved.height);
+                        setWeight(saved.weight);
+                    }
+                }
+            } catch (error) {
+                console.error("Lỗi khi load chỉ số cơ thể từ API:", error);
+            }
+        };
 
-            // Ưu tiên lấy tuổi và giới tính từ hồ sơ người dùng để đồng bộ từ trang Profile
+        loadBodyIndex();
+        
+        const handleStorageChange = () => { 
+            const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
             if (user) {
                 if (user.age !== undefined && user.age !== null && user.age !== '') setAge(user.age);
                 if (user.gender) setGender(user.gender === 'Nam' ? 'male' : 'female');
             }
-
-            if (data) {
-                if (data.height) setHeight(data.height);
-                if (data.weight) setWeight(data.weight);
-                // Nếu trang chỉ số cơ thể có lưu tuổi/giới tính riêng thì cập nhật thêm (nhưng user vẫn ưu tiên hơn)
-                if (!user && data.age !== undefined && data.age !== null && data.age !== '') setAge(data.age);
-                if (!user && data.gender) setGender(data.gender);
-            }
         };
+
         window.addEventListener('storage', handleStorageChange);
-        const interval = setInterval(handleStorageChange, 2000); // Kiểm tra mỗi 2s
-        return () => {
-            window.removeEventListener('storage', handleStorageChange);
-            clearInterval(interval);
-        };
+        return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
-
-    // Tính toán TDEE ban đầu nếu có dữ liệu
     useEffect(() => {
-        // Hàm tính toán Calo chính dựa trên công thức Mifflin-St Jeor
         const calculateTdee = () => {
             if (!age || !height || !weight) {
                 setTdee(0);
                 return;
-            }
-
-            // Bước 1: Tính BMR 
+            } 
             let bmr = (10 * weight) + (6.25 * height) - (5 * age); 
             
-            // Điều chỉnh BMR theo giới tính
+            
             if (gender === 'male') { 
-                bmr += 5;   // Nam giới cần nhiều năng lượng hơn một chút
+                bmr += 5;   
             } else {
-                bmr -= 161; // Nữ giới
+                bmr -= 161;
             }
             
-            // Bước 2: Tính TDEE bằng cách nhân BMR với hệ số vận động (activity)
             const result = Math.round(bmr * activity); 
-            setTdee(result); // Cập nhật kết quả hiển thị
+            setTdee(result); 
         };
 
         if (height && weight && age) {
@@ -97,7 +102,6 @@ const CalorieCalculator = () => {
         }
     }, [height, weight, age, gender, activity]);
 
-    // Lưu lại thông tin vào localStorage khi người dùng thay đổi trực tiếp tại đây
     useEffect(() => {
         if (height || weight || age || gender) {
             const currentSaved = getSavedBodyIndex();
@@ -113,29 +117,25 @@ const CalorieCalculator = () => {
         }
     }, [height, weight, age, gender]);
 
-    // Hàm tính toán Calo chính dựa trên công thức Mifflin-St Jeor
     const handleCalculate = () => {
         if (!age || !height || !weight) {
             alert("Vui lòng nhập đầy đủ thông tin!");
             return;
         }
-
-        // Bước 1: Tính BMR (Basal Metabolic Rate - Tỷ lệ trao đổi chất cơ bản)
         let bmr = (10 * weight) + (6.25 * height) - (5 * age); 
         
-        // Điều chỉnh BMR theo giới tính
         if (gender === 'male') { 
-            bmr += 5;   // Nam giới cần nhiều năng lượng hơn một chút
+            bmr += 5;  
         } else {
-            bmr -= 161; // Nữ giới
+            bmr -= 161; 
         }
         
-        // Bước 2: Tính TDEE bằng cách nhân BMR với hệ số vận động (activity)
+        
         const result = Math.round(bmr * activity); 
-        setTdee(result); // Cập nhật kết quả hiển thị
+        setTdee(result); 
     };
 
-    // Hàm đặt lại (Reset) toàn bộ các ô nhập liệu về giá trị mặc định ban đầu
+    
     const handleReset = () => { 
         const data = getSavedBodyIndex();
         const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
@@ -147,8 +147,7 @@ const CalorieCalculator = () => {
         setActivity(1.2);
         setTdee(0);
     };
-
-    //  Hệ thống Styles 
+ 
     const styles = {
         container: { padding: '40px 20px 100px 20px', maxWidth: '1100px', margin: '0 auto', fontFamily: '"Inter", sans-serif', backgroundColor: '#fff', minHeight: '100vh' },
         title: { textAlign: 'center', fontSize: '28px', marginBottom: '40px', fontWeight: 'bold', color: '#000' },
@@ -230,9 +229,8 @@ const CalorieCalculator = () => {
             <h2 style={styles.title} className="calorie-title">Lượng calo cơ thể cần trong ngày</h2>
 
             <div style={styles.calculatorBox} className="calculator-box">  
-                {/* PANEL NHẬP LIỆU */}
                 <div>
-                    <div style={styles.formField}>{/* Nhóm tuổi */ }
+                    <div style={styles.formField}>
                         <label style={styles.label}>Tuổi</label>
                         <input 
                             type="number" 
@@ -241,29 +239,28 @@ const CalorieCalculator = () => {
                             value={age} 
                             onChange={(e) => {
                                 const val = e.target.value;
-                                // Chỉ chấp nhận số không âm và không rỗng
                                 if (val === '' || (Number(val) >= 0 && !val.includes('-'))) {
                                     setAge(val === '' ? '' : Number(val));
                                 }
                             }} 
-                        /> { /* Cập nhật tuổi và ngăn số âm */ }
+                        /> 
                     </div>
 
-                    <div style={styles.formField}> {/* Nhóm giới tính */ }
+                    <div style={styles.formField}> 
                         <label style={styles.label}>Giới tính</label>
                         <div style={styles.radioGroup}>
                             <label style={styles.radioLabel}>
-                                <input type="radio" name="gender" checked={gender === 'female'} onChange={() => setGender('female')} style={{accentColor: '#000'}} /> Nữ { /* Cập nhật giới tính khi người dùng chọn */ }
+                                <input type="radio" name="gender" checked={gender === 'female'} onChange={() => setGender('female')} style={{accentColor: '#000'}} /> Nữ 
                             </label>
                             <label style={styles.radioLabel}>
-                                <input type="radio" name="gender" checked={gender === 'male'} onChange={() => setGender('male')} style={{accentColor: '#000'}} /> Nam {/*cập nhật giới tính khi ng dùng chọn */}
+                                <input type="radio" name="gender" checked={gender === 'male'} onChange={() => setGender('male')} style={{accentColor: '#000'}} /> Nam 
                             </label>
                         </div>
                     </div>
 
-                    <div style={styles.formField}> {/* Nhóm chiều cao */ }
-                        <label style={styles.label}>Chiều cao <span style={styles.labelSub}>(Chiều cao)</span></label> { /* Nhãn với chú thích */ }
-                        <div style={styles.inputGroup}> {/* Nhóm ô nhập liệu và đơn vị */ }
+                    <div style={styles.formField}> 
+                        <label style={styles.label}>Chiều cao <span style={styles.labelSub}>(Chiều cao)</span></label>
+                        <div style={styles.inputGroup}> 
                             <input 
                                 type="number" 
                                 min="0"
@@ -275,13 +272,13 @@ const CalorieCalculator = () => {
                                         setHeight(val === '' ? '' : Number(val));
                                     }
                                 }} 
-                            />{ /* Cập nhật chiều cao và ngăn số âm */ }
-                            <span style={styles.unit}>cm</span> {/* Đơn vị cm */ }
+                            />
+                            <span style={styles.unit}>cm</span> 
                         </div>
                     </div>
 
-                    <div style={styles.formField}> {/* Nhóm cân nặng */ }
-                        <label style={styles.label}>Cân nặng <span style={styles.labelSub}>(Cân nặng)</span></label> { /* Nhãn với chú thích */ }
+                    <div style={styles.formField}> 
+                        <label style={styles.label}>Cân nặng <span style={styles.labelSub}>(Cân nặng)</span></label> 
                         <div style={styles.inputGroup}>
                             <input 
                                 type="number" 
@@ -294,19 +291,18 @@ const CalorieCalculator = () => {
                                         setWeight(val === '' ? '' : Number(val));
                                     }
                                 }} 
-                            />{ /* Cập nhật cân nặng và ngăn số âm */ }
+                            />
                             <span style={styles.unit}>kg</span>
                         </div>
                     </div>
 
-                    <div style={styles.btnGroup}> {/* Nhóm nút Tính toán và Đặt lại */ }
+                    <div style={styles.btnGroup}> 
                         <button style={styles.btnSubmit} onClick={handleCalculate}>Tính toán</button> 
                         <button style={styles.btnReset} onClick={handleReset}>Đặt lại</button> 
                     </div>
                     <p style={styles.note}>Tính toán tham khảo công thức: https://www.calculator.net/bmr-calculator.html</p>
                 </div>
 
-                {/* PANEL MỨC VẬN ĐỘNG */}
                 <div>
                     <label style={styles.label}>Mức độ vận động</label>
                     <select 
@@ -341,7 +337,7 @@ const CalorieCalculator = () => {
                 </div>
             </div>
 
-            {/* PHẦN KẾT QUẢ THEO BỐ CỤC ẢNH 1 */}
+            
             <div style={styles.resultSection} className="result-section">
                 <div style={styles.mainResult} className="main-result">
                     <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '10px' }}>

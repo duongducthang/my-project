@@ -1,10 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-
-// Layouts
-import UserLayout from './layouts/UserLayout';       // Layout chỉ có Header (cho Blog, BMI...)
-import AccountLayout from './layouts/AccountLayout'; // Layout có Header + Sidebar (cho Profile...)
-
-// Pages
+import UserLayout from './layouts/UserLayout';       
+import AccountLayout from './layouts/AccountLayout'; 
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Blog from './pages/dashboard/Blog';
@@ -20,12 +16,10 @@ function App() {
     return (
         <Router>
             <Routes>
-                {/* --- NHÓM 1: KHÔNG LAYOUT (Login/Register) --- */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
 
-                {/* --- NHÓM 2: USER LAYOUT (Chỉ có Header, KHÔNG Sidebar) --- */}
-                <Route element={<UserLayout />}>f
+                <Route element={<UserLayout />}>
                     <Route path="/" element={<Navigate to="/blog" />} />
                     <Route path="/blog" element={<Blog />} />
                     <Route path="/bmi" element={<BMICalculator />} />
@@ -34,7 +28,6 @@ function App() {
                     <Route path="/calorie-tracker" element={<CalorieTracker />} />
                 </Route>
 
-                {/* --- NHÓM 3: ACCOUNT LAYOUT (Có Header + Sidebar) --- */}
                 <Route path="/account" element={<AccountLayout />}>
                     <Route index element={<Navigate to="profile" />} />
                     <Route path="profile" element={<Profile />} />

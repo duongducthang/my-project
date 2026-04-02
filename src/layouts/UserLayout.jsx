@@ -1,35 +1,27 @@
-/**
- * UserLayout: Thành phần Layout chung cho toàn bộ ứng dụng người dùng.
- * Bao gồm: Header (Logo, Menu điều hướng, Thông tin tài khoản) và phần nội dung chính (Outlet).
- */
-
 import { useState, useEffect } from 'react';
 import { Outlet, Link, NavLink } from 'react-router-dom';
 import AvatarImg from '../assets/img/Avatar.svg';
 import logoImg from '../assets/img/logo.png';
 
 const UserLayout = ({ children }) => {
-  // QUẢN LÝ THÔNG TIN NGƯỜI DÙNG
+
   const [user, setUser] = useState(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false); // State cho mobile menu
+  const [isMenuOpen, setIsMenuOpen] = useState(false); 
 
   useEffect(() => {
-    // Hàm lấy thông tin người dùng từ localStorage
     const loadUser = () => {
       const savedUser = localStorage.getItem('currentUser'); 
       if (savedUser) {
-        setUser(JSON.parse(savedUser));// chuyển chuỗi JSON lấy từ localStorage ngược lại thành object/array
+        setUser(JSON.parse(savedUser));
       }
     };
 
     loadUser(); 
 
-    // Lắng nghe sự kiện 'storage' (khi dữ liệu thay đổi từ các tab khác)
+    
     window.addEventListener('storage', loadUser);
-    // Lắng nghe sự kiện tùy chỉnh 'userUpdate' (khi cập nhật profile trong cùng tab)
     window.addEventListener('userUpdate', loadUser);
 
-    // Dọn dẹp các sự kiện khi component bị gỡ bỏ
     return () => {  
       window.removeEventListener('storage', loadUser);
       window.removeEventListener('userUpdate', loadUser);
@@ -38,10 +30,10 @@ const UserLayout = ({ children }) => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 overflow-x-hidden">
-      {/* --- PHẦN HEADER --- */}
+   
       <header className="sticky top-0 z-50 bg-[#4d554e] text-white shadow-md w-full">
         <div className="max-w-[1400px] mx-auto flex justify-between items-center px-4 md:px-10 py-3 md:py-4 gap-4">
-          {/* Khu vực Logo và Tên trang */}
+          
           <Link to="/dashboard" className="flex items-center gap-2 no-underline hover:opacity-90 shrink-0 min-w-0">
              <div className="w-10 h-10 md:w-14 lg:w-16 md:h-14 lg:h-16 rounded-full flex items-center justify-center">
                 <img src={logoImg} alt="Logo" className="w-full h-full rounded-full object-cover" />
@@ -49,7 +41,7 @@ const UserLayout = ({ children }) => {
              <span className="text-sm sm:text-base md:text-lg lg:text-xl tracking-wide font-['Itim'] text-white truncate">HEALTHY FOOD</span>
           </Link>
 
-          {/* Nút Menu Mobile */}
+          
           <button 
             className="md:hidden p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -65,7 +57,7 @@ const UserLayout = ({ children }) => {
             )}
           </button>
 
-          {/* Menu Điều hướng chính (Desktop) */}
+          
           <nav className="hidden md:flex items-center gap-6 lg:gap-10 font-medium">
              <NavLink 
                to="/blog" 
@@ -103,7 +95,7 @@ const UserLayout = ({ children }) => {
              </NavLink>
           </nav>
 
-          {/* Khu vực Thông tin cá nhân / Đăng nhập (Desktop) */}
+         
           <div className="hidden md:block">
             <NavLink 
               to="/account/profile" 
@@ -125,7 +117,7 @@ const UserLayout = ({ children }) => {
           </div>
         </div>
 
-        {/* Menu Mobile (Dropdown) */}
+       
         <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${isMenuOpen ? 'max-h-[500px] border-t border-white/10' : 'max-h-0'}`}>
           <nav className="flex flex-col p-4 gap-4 bg-[#4d554e]">
              <NavLink 
@@ -192,9 +184,8 @@ const UserLayout = ({ children }) => {
         </div>
       </header>
 
-      {/* --- PHẦN NỘI DUNG CHÍNH --- */}
+      
       <main className="flex-1 w-full max-w-[1400px] mx-auto px-0 md:px-4">
-        {/* Hiển thị 'children' nếu được truyền trực tiếp, hoặc dùng 'Outlet' cho Router */}
         <div className="w-full h-full">
           {children || <Outlet />}
         </div>

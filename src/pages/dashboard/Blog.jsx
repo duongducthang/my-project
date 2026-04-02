@@ -1,11 +1,10 @@
 //Trang Blog 
-//useMemo để tối ưu hiệu suất khi lọc dữ liệu
 
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useMemo, useEffect } from 'react';
 import FoodDetailModal from '../../components/common/FoodDetailModal';
+import axiosClient from '../../services/axiosClient';
 
-// Import ảnh (giả định theo cấu trúc thư mục của bạn)
 import PotatoesImg from '../../assets/img/Potatoes.svg';
 import VegetablesImg from '../../assets/img/Vegetables.jpg';
 import MushroomsImg from '../../assets/img/Mushroom.jpg';
@@ -13,12 +12,12 @@ import TitleImg from '../../assets/img/img-blog.svg';
 
 
 const Blog = () => {
-    // 1. STATE QUẢN LÝ CHỨC NĂNG VÀ GIAO DIỆN
-    const [selectedFood, setSelectedFood] = useState(null); // Lưu món ăn người dùng nhấn vào để xem chi tiết (Modal)
-    const [searchTerm, setSearchTerm] = useState("");      // Lưu từ khóa tìm kiếm mà người dùng nhập
-    const [activeCategory, setActiveCategory] = useState("Tất cả"); // Danh mục hiện tại đang được chọn để lọc
+    const [selectedFood, setSelectedFood] = useState(null); 
+    const [searchTerm, setSearchTerm] = useState("");     
+    const [activeCategory, setActiveCategory] = useState("Tất cả"); 
+    const [foods, setFoods] = useState([]); 
+    const [isLoading, setIsLoading] = useState(false);
 
-    // Cấu trúc Menu Sidebar 
     const sidebarMenu = [
         { id: 'seasonal', title: "Thực đơn theo mùa", isStatic: true },
         { id: 'dishes', title: "Thực đơn theo món", isStatic: true },
@@ -40,8 +39,7 @@ const Blog = () => {
         }
     ];
 
-    // Trạng thái đóng/mở của các mục có menu con trong Sidebar
-    // Dữ liệu được lấy từ localStorage để ghi nhớ trạng thái người dùng đã chọn trước đó 
+    
     const [expandedSections, setExpandedSections] = useState(() => {
         const saved = localStorage.getItem('blog_sidebar_expanded');
         return saved ? JSON.parse(saved) : {
@@ -51,14 +49,91 @@ const Blog = () => {
         };
     });
 
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false); // State cho mobile sidebar
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-    // Cập nhật localStorage mỗi khi người dùng đóng/mở một mục trong Sidebar
+    // FETCH FOODS FROM API
+    useEffect(() => {
+        const fetchFoods = async () => {
+            try {
+                setIsLoading(true);
+                const params = {};
+                if (activeCategory !== "Tất cả") params.category = activeCategory;
+                if (searchTerm) params.search = searchTerm;
+
+                console.log("[API Request] GET /foods", params);
+                const res = await axiosClient.get('/foods', { params });
+                
+            
+                const data = res?.foods || res;
+                setFoods(Array.isArray(data) ? data : []);
+            } catch (err) {
+                console.error("Lỗi khi fetch foods:", err);
+                setFoods([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        const timer = setTimeout(() => {
+            fetchFoods();
+        }, 300); 
+
+        return () => clearTimeout(timer);
+    }, [activeCategory, searchTerm]);
+
+    
+    const handleSeedFoods = async () => {
+        if (!window.confirm("Bạn có muốn khởi tạo dữ liệu mẫu vào Database không?")) return;
+        try {
+            const initialFoods = [
+                { 
+                    category: "Bữa sáng", 
+                    title: "Potatoes", 
+                    desc: "Potatoes are very high in vitamin C, their skins are packed with fiber...", 
+                    fullDesc: "Potatoes are very high in vitamin C, their skins are packed with fiber and, although they are higher in carbs, these starchy complex carbohydrates are converted into energy and will keep you feeling fuller for longer.",
+                    imageUrl: "Potatoes.svg", 
+                    details: [
+                        { name: "Baked Potato", serving: "1 piece (173g)", calories: "212" },
+                        { name: "French Fries", serving: "1 portion (120g)", calories: "374" },
+                    ]
+                },
+                { 
+                    category: "Bữa trưa", 
+                    title: "Vegetables", 
+                    desc: "Vegetables are a great high-volume, low-calorie option...", 
+                    fullDesc: "Vegetables are a great high-volume, low-calorie option. You can eat a lot of them while keeping your calorie intake low.",
+                    imageUrl: "Vegetables.jpg",
+                    details: [
+                        { name: "Artichoke", serving: "1 piece (128 g)", calories: "56" },
+                        { name: "Asparagus", serving: "1 piece, small (12 g)", calories: "2" }
+                    ]
+                },
+                { 
+                    category: "Bữa tối", 
+                    title: "Mushrooms", 
+                    desc: "High in protein and low in calories...", 
+                    fullDesc: "High in protein and low in calories, mushrooms that have been grown in the sun are also a great source of vitamin D.",
+                    imageUrl: "Mushroom.jpg",
+                    details: [
+                        { name: "Button Mushrooms", serving: "100g", calories: "22" }
+                    ]
+                }
+            ];
+            for (const food of initialFoods) {
+                await axiosClient.post('/foods', food);
+            }
+            alert("Đã khởi tạo dữ liệu mẫu thành công!");
+            window.location.reload();
+        } catch (err) {
+            console.error("Seed failed:", err);
+            alert("Lỗi khi khởi tạo dữ liệu: " + (err.message || "Unknown error"));
+        }
+    };
+
     useEffect(() => {
         localStorage.setItem('blog_sidebar_expanded', JSON.stringify(expandedSections));
-    }, [expandedSections]); 
+    }, [expandedSections]);
 
-    // Tự động mở rộng danh mục trong Sidebar nếu người dùng chọn một mục con bên trong nó
     useEffect(() => {
         sidebarMenu.forEach(section => {
             if (section.items && section.items.includes(activeCategory)) {
@@ -69,7 +144,6 @@ const Blog = () => {
         });
     }, [activeCategory]);
 
-    // Hàm xử lý việc đóng/mở các mục trong Sidebar
     const toggleSection = (sectionId) => { 
         setExpandedSections(prev => ({ 
             ...prev,
@@ -77,64 +151,15 @@ const Blog = () => {
         }));
     };
 
-    // DỮ LIỆU DANH SÁCH MÓN ĂN (MOCK DATA)
-    const foods = [
-        { 
-            id: 1, 
-            category: "Bữa sáng", 
-            title: "Potatoes", 
-            desc: "Potatoes are very high in vitamin C, their skins are packed with fiber and, although they are higher....", 
-            fullDesc: "Potatoes are very high in vitamin C, their skins are packed with fiber and, although they are higher in carbs, these starchy complex carbohydrates are converted into energy and will keep you feeling fuller for longer. Check out our Potatoes and Potato Products Calorie Chart below for more nutritional information",
-            img: PotatoesImg, 
-            details: [
-                { name: "Baked Potato", serving: "1 piece (173g)", calories: "212 " },
-                { name: "Croquettes", serving: "1piece,small(19g)", calories: "34 " },
-                { name: "Curly Fries", serving: "1 portion (85g)", calories: "150 " },
-                { name: "French Fries", serving: "1 portion (120g)", calories: "374 " },
-                { name: "Gnocchi", serving: "1 portion (200g)", calories: "326 " },
-                { name: "Hash Browns", serving: "1 piece (50g)", calories: "86 " },
-                { name: "Latkes", serving: "1 piece, small (25g)", calories: "49 " }
-            ]
-        },
-        { 
-            id: 2, 
-            category: "Bữa trưa", 
-            title: "Vegetables", 
-            desc: "Vegetables are a great high-volume, low-calorie option...", 
-            fullDesc: "Vegetables are a great high-volume, low-calorie option. You can eat a lot of them",
-            img: VegetablesImg,
-            details: [
-                { name: "Arrowroot", serving: "1 piece (33 g)", calories: "21 " },
-                { name: "Artichoke", serving: "1 piece (128 g)", calories: "56 " },
-                { name: "Asparagus", serving: "1 piece, small (12 g)", calories: "2 " },
-                { name: "Asparagus, cooked", serving: "1 portion (125 g)", calories: "19 " },
-                { name: "Azuki Beans", serving: "1 portion (60 g)", calories: "217 " },
-                { name: "Baked Beans", serving: "1 cup (253 g)", calories: "266 " }
-            ]
-        },
-        { 
-            id: 3, 
-            category: "Bữa tối", 
-            title: "Mushrooms", 
-            desc: "High in protein and low in calories, mushrooms that have been grown...", 
-            img: MushroomsImg,
-        },
-        { id: 4, category: "Thứ 2", title: "Title", desc: "Body text for whatever you’d like to say. Add main takeaway points, quotes, anecdotes, or even a very very short story.", img: TitleImg },
-        { id: 5, category: "Thứ 3", title: "Title", desc: "Body text for whatever you’d like to say. Add main takeaway points, quotes, anecdotes, or even a very very short story.", img: TitleImg },
-        { id: 6, category: "Title.....", title: "Title", desc: "Body text for whatever you’d like to say. Add main takeaway points, quotes, anecdotes, or even a very very short story.", img: TitleImg },
-    ];
 
-    // LOGIC LỌC VÀ TÌM KIẾM MÓN ĂN
-    // Sử dụng useMemo để tránh việc tính toán lại danh sách mỗi khi component re-render không cần thiết
     const filteredFoods = useMemo(() => {
-        return foods.filter(food => {
-            // Kiểm tra xem món ăn có thuộc danh mục đang chọn không (hoặc là "Tất cả")
-            const matchesCategory = activeCategory === "Tất cả" || food.category === activeCategory;
-            // Kiểm tra xem tiêu đề món ăn có chứa từ khóa tìm kiếm không
-            const matchesSearch = food.title.toLowerCase().includes(searchTerm.toLowerCase());
-            return matchesCategory && matchesSearch;
-        });
-    }, [searchTerm, activeCategory]); // Chỉ tính toán lại khi searchTerm hoặc activeCategory thay đổi
+
+        return foods.map(food => ({
+            ...food,
+            id: food.id || food._id,
+            img: food.imageUrl ? `src/assets/img/${food.imageUrl}` : `src/assets/img/img-blog.svg`
+        }));
+    }, [foods]);
 
     return (
         <div className="blog-wrapper">
@@ -455,7 +480,6 @@ const Blog = () => {
                 }
             `}</style>
 
-        {/* CHỨC NĂNG 1: TÌM KIẾM */}
             <div className="search-bar-container">
                 <button 
                     className="mobile-menu-btn"
@@ -468,73 +492,64 @@ const Blog = () => {
                     className="search-input" 
                     placeholder="Tìm kiếm món ăn..." 
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)} // Cập nhật từ khóa tìm kiếm khi người dùng nhập liệu
+                    onChange={(e) => setSearchTerm(e.target.value)} 
                 />
             </div>
 
             <main className="container">
-        {/* CHỨC NĂNG 2: LỌC THEO CATEGORY TẠI SIDEBAR */}
 <aside className="sidebar">
-        {/* Mục "Tất cả": Reset bộ lọc để hiển thị toàn bộ món ăn */}
     <h4 
-        className={activeCategory === "Tất cả" ? "active-header" : ""} // Active class nếu đang chọn tất cả
+        className={activeCategory === "Tất cả" ? "active-header" : ""} 
         onClick={() => {
             setActiveCategory("Tất cả");
             if (window.innerWidth <= 992) setIsSidebarOpen(false);
-        }} // Cập nhật state lọc về mặc định
+        }} 
         style={{ cursor: 'pointer' }}
     >
         Tất cả danh mục
     </h4>
     
-    {/* Duyệt qua mảng cấu trúc menu sidebarMenu để render từng nhóm */}
+   
     {sidebarMenu.map((section) => (
         <div key={section.id} className="menu-group">
             
-            {/* KIỂM TRA LOẠI MENU: isStatic nghĩa là mục đơn, không có menu con */}
             {section.isStatic ? (
                 <span 
                     className={`static-item ${activeCategory === section.title ? "active-sub" : ""}`}
                     onClick={() => {
                         setActiveCategory(section.title);
                         if (window.innerWidth <= 992) setIsSidebarOpen(false);
-                    }} // Nhấn vào là lọc ngay theo tiêu đề section
+                    }} 
                 >
                     {section.title}
                 </span>
             ) : (
-                /* NẾU LÀ MENU ĐA CẤP: Có tiêu đề và danh sách các mục con (sub-items) */
                 <>
-                    {/* Header của nhóm menu (vd: Thực đơn theo bữa) */}
                     <div 
                         className={`menu-header ${section.items.includes(activeCategory) ? "active-header" : ""}`}
-                        onClick={() => toggleSection(section.id)} // Logic đóng/mở menu con
+                        onClick={() => toggleSection(section.id)}
                     >
-                        {/* Biểu tượng mũi tên, xoay dựa trên trạng thái expanded (đã mở hay chưa) */}
                         <span className={`chevron ${expandedSections[section.id] ? "" : "rotated"}`}></span>
                         <span>{section.title}</span>
                     </div>
                     
-                    {/* Danh sách các mục con (sub-list) */}
                     <div 
                         className="sub-list" 
                         style={{ 
-                            /* Hiệu ứng mượt (Transition): Tính toán chiều cao dựa trên số lượng item để trượt xuống */
                             maxHeight: expandedSections[section.id] ? `${section.items.length * 40 + 50}px` : '0',
                             opacity: expandedSections[section.id] ? 1 : 0,
                             overflow: 'hidden',
-                            transition: 'all 0.3s ease' // Thời gian hiệu ứng 0.3 giây
+                            transition: 'all 0.3s ease' 
                         }}
                     >
-                        {/* Duyệt qua mảng các mục con của section (vd: Bữa sáng, Bữa trưa...) */}
                         {section.items.map(cat => (
                             <span 
                                 key={cat}
-                                className={`sub ${activeCategory === cat ? "active-sub" : ""}`} // Đánh dấu mục đang chọn
+                                className={`sub ${activeCategory === cat ? "active-sub" : ""}`} 
                                 onClick={() => {
                                     setActiveCategory(cat);
-                                    if (window.innerWidth <= 992) setIsSidebarOpen(false); // Đóng sidebar trên mobile sau khi chọn
-                                }} // Cập nhật danh mục cần lọc
+                                    if (window.innerWidth <= 992) setIsSidebarOpen(false); 
+                                }} 
                             >
                                 {cat}
                             </span>
@@ -548,37 +563,59 @@ const Blog = () => {
 
                 <section className="content">
                     <div className="content-header">
-                        {/* dùng === để tránh các trường hợp ép kiểu như : 1==='1' :false */}
-                        <h2>{activeCategory === "Tất cả" ? "Thực đơn và lời khuyên về chế độ ăn uống lành mạnh" : `Thực đơn ${activeCategory}`}</h2> {/* Tiêu đề thay đổi theo danh mục đang chọn  */}
+                        <h2>{activeCategory === "Tất cả" ? "Thực đơn và lời khuyên về chế độ ăn uống lành mạnh" : `Thực đơn ${activeCategory}`}</h2> 
                     </div>
 
-                    <div className="card-grid"> {/* LƯỚI HIỂN THỊ CÁC CARD MÓN ĂN */}
-                        {filteredFoods.length > 0 ? ( // Nếu có món ăn sau khi lọc
-                            filteredFoods.map((food) => (  // Lặp qua danh sách món ăn đã lọc để hiển thị
+                    <div className="card-grid"> 
+                        {isLoading ? (
+                            <div style={{ textAlign: 'center', padding: '50px', gridColumn: '1 / -1' }}>
+                                <div style={{ color: '#00b2ff', fontSize: '1.2rem', fontWeight: '600' }}>Đang tải thực đơn...</div>
+                            </div>
+                        ) : filteredFoods.length > 0 ? ( 
+                            filteredFoods.map((food) => (  
                                 <div 
                                     className="card" 
                                     key={food.id} 
-                                    onClick={() => setSelectedFood(food)} // CHỨC NĂNG 3: MỞ MODAL
+                                    onClick={() => setSelectedFood(food)} 
                                 >
-                                    <div className="img-box"> { /* Khung chứa ảnh */ }
-                                        <img src={food.img} alt={food.title} /> {/* Ảnh món ăn */ }
+                                    <div className="img-box"> 
+                                        <img src={food.img} alt={food.title} /> 
                                     </div>
                                     <h3>{food.title}</h3>
                                     <p>{food.desc}</p>
+                                    <div className="card-footer">
+                                        <span className="read-more">Xem chi tiết</span>
+                                    </div>
                                 </div>
                             ))
                         ) : (
-                            <div className="no-result">Không tìm thấy món ăn phù hợp.</div>
+                            <div className="no-result">
+                                <p>Không tìm thấy món ăn phù hợp.</p>
+                                <button 
+                                    onClick={handleSeedFoods}
+                                    style={{
+                                        marginTop: '20px',
+                                        padding: '10px 20px',
+                                        background: '#00b2ff',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '20px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Khởi tạo dữ liệu mẫu
+                                </button>
+                            </div>
                         )}
                     </div>
                 </section>
             </main>
 
-            {/* MODAL CHI TIẾT */}
-            {selectedFood && ( //nếu có món ăn được chọn thì hiển thị modal
-                <FoodDetailModal //hiển thị chi tiết món ăn
-                    food={selectedFood}     //truyền món ăn được chọn vào modal 
-                    onClose={() => setSelectedFood(null)} //hàm đóng modal,đặt món ăn được chọn về null(null:gtri trống-undefined:gtri k tồn tại)
+            
+            {selectedFood && ( 
+                <FoodDetailModal 
+                    food={selectedFood}      
+                    onClose={() => setSelectedFood(null)} 
                 />
             )}
         </div>

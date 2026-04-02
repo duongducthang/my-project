@@ -1,106 +1,108 @@
 // Trang tính chỉ số cơ thể
 
-import { useState } from 'react'; 
+import { useState, useEffect } from 'react'; 
 import BlogImg from '../../assets/img/img-blog.svg';
+import axiosClient from '../../services/axiosClient';
 import FoodDetailModal from '../../components/common/FoodDetailModal';
 import VegetablesImg from '../../assets/img/Vegetables.jpg';
 import PotatoesImg from '../../assets/img/Potatoes.svg';
 
 const BMICalculator = () => {
-    // STATE QUẢN LÝ DỮ LIỆU VÀ GIAO DIỆN
-    const [height, setHeight] = useState(''); // Chiều cao (cm) người dùng nhập
-    const [weight, setWeight] = useState(''); // Cân nặng (kg) người dùng nhập
-    const [BMI, setBMI] = useState(null);   // Chỉ số BMI sau khi tính toán
-    const [bmiStatus, setBmiStatus] = useState(''); // Trạng thái phân loại BMI
-    const [openModal, setOpenModal] = useState(false);  // Trạng thái hiển thị cửa sổ chi tiết món ăn (Modal)
-    const [selectedFood, setSelectedFood] = useState(null); // Lưu thông tin món ăn đang được xem chi tiết
+    const [height, setHeight] = useState(''); 
+    const [weight, setWeight] = useState(''); 
+    const [BMI, setBMI] = useState(null);   
+    const [bmiStatus, setBmiStatus] = useState(''); 
+    const [openModal, setOpenModal] = useState(false);  
+    const [selectedFood, setSelectedFood] = useState(null); 
+    const [foods, setFoods] = useState([]); 
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
-    //DỮ LIỆU MÓN ĂN GỢI Ý (Giả lập dữ liệu từ API)
-    const potatoesData = { 
-        title: "Potatoes", 
-        desc: "Potatoes are very high in vitamin C, their skins are packed with fiber and, although they are higher...", 
-        fullDesc: "Potatoes are very high in vitamin C, their skins are packed with fiber and, although they are higher in carbs, these starchy complex carbohydrates are converted into energy and will keep you feeling fuller for longer. Check out our Potatoes and Potato Products Calorie Chart below for more nutritional information.",
-        img: PotatoesImg, 
-        details: [
-            { name: "Baked Potato", serving: "1 piece (173g)", calories: "212 " },
-            { name: "Croquettes", serving: "1piece,small(19g)", calories: "34 " },
-            { name: "Curly Fries", serving: "1 portion (85g)", calories: "150 " },
-            { name: "French Fries", serving: "1 portion (120g)", calories: "374 " },
-            { name: "Gnocchi", serving: "1 portion (200g)", calories: "326 " },
-            { name: "Hash Browns", serving: "1 piece (50g)", calories: "86 " },
-            { name: "Latkes", serving: "1 piece, small (25g)", calories: "49 " }
-        ]
-    };
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setIsLoading(true);
+                const foodRes = await axiosClient.get('/foods');
+                setFoods(foodRes?.foods || foodRes || []); 
+                const historyRes = await axiosClient.get('/health/history');
+                const historyData = historyRes?.data || historyRes;
+                const latest = Array.isArray(historyData) ? historyData[0] : null;
+                
+                if (latest) {
+                    setHeight(latest.height);
+                    setWeight(latest.weight);
+                    setBMI(latest.bmi);
+                    
+                    
+                    const bmiVal = latest.bmi;
+                    if (bmiVal < 18.5) setBmiStatus('Gầy');
+                    else if (bmiVal <= 22.9) setBmiStatus('Bình thường');
+                    else if (bmiVal <= 24.9) setBmiStatus('Thừa cân');
+                    else setBmiStatus('Béo phì');
+                }
+            } catch (error) {
+                console.error("Lỗi khi tải dữ liệu:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
 
-    const vegetableData = {
-        title: "Vegetables", 
-        desc: "Vegetables are a great high-volume, low-calorie option. You can eat a lot of them",
-        fullDesc: "Vegetables are a great high-volume, low-calorie option. You can eat a lot of them",
-        img: VegetablesImg,
-        details: [
-            { name: "Arrowroot", serving: "1 piece (33 g)", calories: "21 " },
-            { name: "Artichoke", serving: "1 piece (128 g)", calories: "56 " },
-            { name: "Asparagus", serving: "1 piece, small (12 g)", calories: "2 " },
-            { name: "Asparagus, cooked", serving: "1 portion (125 g)", calories: "19 " },
-            { name: "Azuki Beans", serving: "1 portion (60 g)", calories: "217 " },
-            { name: "Baked Beans", serving: "1 cup (253 g)", calories: "266 " }
-        ]
-    };
-
-    // XỬ LÝ SỰ KIỆN
-    // Hàm tính toán chỉ số BMI dựa trên chiều cao và cân nặng
-    const calculateBMI = () => { 
+    
+    const calculateBMI = async () => { 
         if (!height || !weight) {
             alert("Vui lòng nhập đầy đủ thông tin chiều cao và cân nặng!");
             return;
         }
-        const h = height / 100; // Chuyển đổi đơn vị từ cm sang mét
-        const result = (weight / (h * h)).toFixed(1); // Công thức BMI = cân nặng / (chiều cao * chiều cao)
-        setBMI(result); // Lưu kết quả vào state để hiển thị
-
-        // Lưu thông tin vào localStorage để dùng cho trang tính toán calo
-        localStorage.setItem('user_body_index', JSON.stringify({
-            height: height,
-            weight: weight,
-            bmi: result,
-            status: '' // Sẽ được cập nhật dưới đây
-        }));
-
-        // Phân loại BMI theo chuẩn WHO cho người Châu Á
+        
+        const h = parseFloat(height) / 100;
+        const w = parseFloat(weight);
+        const result = (w / (h * h)).toFixed(1);
         const bmiVal = parseFloat(result);
+        setBMI(result);
+
         let status = '';
-        if (bmiVal < 18.5) {
-            status = 'Gầy';
-        } else if (bmiVal >= 18.5 && bmiVal <= 22.9) {
-            status = 'Bình thường';
-        } else if (bmiVal >= 23 && bmiVal <= 24.9) {
-            status = 'Thừa cân';
-        } else {
-            status = 'Béo phì';
-        }
+        if (bmiVal < 18.5) status = 'Gầy';
+        else if (bmiVal <= 22.9) status = 'Bình thường';
+        else if (bmiVal <= 24.9) status = 'Thừa cân';
+        else status = 'Béo phì';
         setBmiStatus(status);
 
-        // Cập nhật lại status vào localStorage
-        localStorage.setItem('user_body_index', JSON.stringify({
-            height: height,
-            weight: weight,
-            bmi: result,
-            status: status,
-            updatedAt: new Date().toISOString()
-        }));
+        try {
+            setIsSaving(true);
+            
+            const payload = {
+                height: parseFloat(height),
+                weight: parseFloat(weight),
+                date: new Date().toISOString()
+            };
+            
+            await axiosClient.post('/health/bmi', payload);
+            
+            localStorage.setItem('user_body_index', JSON.stringify({
+                height, weight, bmi: result, status, updatedAt: new Date().toISOString()
+            }));
+            
+            alert("Đã lưu chỉ số cơ thể thành công!");
+        } catch (error) {
+            alert(error.message || "Lỗi khi lưu dữ liệu vào Database.");
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    // Hệ thống Style định nghĩa trực tiếp
+   
     const styles = {
-        container: { padding: '40px 20px 100px 20px', maxWidth: '1000px', margin: '80px auto 0', fontFamily: '"Inter", sans-serif' }, // Khung chứa chính của trang
-        title: { textAlign: 'center', fontSize: '24px', fontWeight: 'bold', marginBottom: '40px' },// Tiêu đề trang
-        bmiForm: { display: 'flex', gap: '15px', alignItems: 'flex-end', justifyContent: 'center', marginBottom: '50px', flexWrap: 'wrap' }, // Khung chứa form tính BMI
-        formGroup: { display: 'flex', flexDirection: 'column', gap: '8px' }, // Nhóm nhập liệu
-        label: { fontWeight: 'bold', fontSize: '14px', color: '#333' }, // Nhãn cho ô nhập liệu
-        input: { padding: '12px', border: '1px solid #ddd', borderRadius: '4px', background: '#f0f0f0', width: '200px', outline: 'none' }, // Ô nhập liệu
-        btnSubmit: { padding: '12px 25px', background: '#d9d9d9', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', transition: '0.3s' }, // Nút tính toán
+        container: { padding: '40px 20px 100px 20px', maxWidth: '1000px', margin: '80px auto 0', fontFamily: '"Inter", sans-serif' }, 
+        title: { textAlign: 'center', fontSize: '24px', fontWeight: 'bold', marginBottom: '40px' },
+        bmiForm: { display: 'flex', gap: '15px', alignItems: 'flex-end', justifyContent: 'center', marginBottom: '50px', flexWrap: 'wrap' }, 
+        formGroup: { display: 'flex', flexDirection: 'column', gap: '8px' }, 
+        label: { fontWeight: 'bold', fontSize: '14px', color: '#333' }, 
+        input: { padding: '12px', border: '1px solid #ddd', borderRadius: '4px', background: '#f0f0f0', width: '200px', outline: 'none' }, 
+        btnSubmit: { padding: '12px 25px', background: '#d9d9d9', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', transition: '0.3s' }, 
         
-        subTitle: { fontSize: '20px', fontWeight: 'bold', marginBottom: '25px' },// Tiêu đề phụ
+        subTitle: { fontSize: '20px', fontWeight: 'bold', marginBottom: '25px' },
         foodCard: { 
             display: 'flex', 
             gap: '20px', 
@@ -113,11 +115,11 @@ const BMICalculator = () => {
             cursor: 'pointer',
             boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
         },// Thẻ món ăn 
-        foodImgBox: { width: '150px', height: '120px', borderRadius: '8px', overflow: 'hidden', background: '#f5f5f5', flexShrink: 0 },// Khung chứa ảnh món ăn
-        img: { width: '100%', height: '100%', objectFit: 'cover' },// Ảnh món ăn
-        foodInfo: { flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' },// Thông tin món ăn
-        foodTitle: { fontSize: '18px', fontWeight: 'bold', margin: 0, color: '#000' },// Tiêu đề món ăn
-        foodDesc: { fontSize: '14px', color: '#666', margin: '0 0 10px 0', lineHeight: '1.5' },// Mô tả món ăn
+        foodImgBox: { width: '150px', height: '120px', borderRadius: '8px', overflow: 'hidden', background: '#f5f5f5', flexShrink: 0 },
+        img: { width: '100%', height: '100%', objectFit: 'cover' },
+        foodInfo: { flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' },
+        foodTitle: { fontSize: '18px', fontWeight: 'bold', margin: 0, color: '#000' },
+        foodDesc: { fontSize: '14px', color: '#666', margin: '0 0 10px 0', lineHeight: '1.5' },
         btnDetail: { 
             width: 'fit-content', 
             padding: '8px 25px', 
@@ -129,8 +131,8 @@ const BMICalculator = () => {
             fontSize: '13px',
             fontWeight: 'bold',
             transition: 'all 0.2s ease'
-        }, // Nút xem chi tiết món ăn
-        bmiStatusText: { width: '100%', textAlign: 'center', marginTop: '10px', fontSize: '15px', fontWeight: '500' } // Style cho dòng thông báo tình trạng
+        }, 
+        bmiStatusText: { width: '100%', textAlign: 'center', marginTop: '10px', fontSize: '15px', fontWeight: '500' } 
     };
 
     return (
@@ -160,9 +162,9 @@ const BMICalculator = () => {
             `}</style>
             <h2 style={styles.title} className="bmi-title">Tính chỉ số BMI của bạn</h2>
             
-            <div style={styles.bmiForm} className="bmi-form"> { /* Khung chứa form tính BMI */ }
-                <div style={styles.formGroup} className="form-group"> { /* Nhóm nhập liệu Chiều cao */ }
-                    <label style={styles.label}>Chiều cao (cm)</label> {/* Nhãn cho ô nhập liệu */}
+            <div style={styles.bmiForm} className="bmi-form"> 
+                <div style={styles.formGroup} className="form-group"> 
+                    <label style={styles.label}>Chiều cao (cm)</label> 
                     <input 
                         type="number" 
                         min="0"
@@ -174,13 +176,13 @@ const BMICalculator = () => {
                             if (val === '' || parseFloat(val) >= 0) {
                                 setHeight(val);
                             }
-                        }} /* Cập nhật chiều cao khi người dùng nhập liệu và ngăn số âm */
+                        }}
                         placeholder="Nhập chiều cao..."
                     />
                 </div>
                 
-                <div style={styles.formGroup} className="form-group"> {/* Nhóm nhập liệu Cân nặng */}
-                    <label style={styles.label}>Cân nặng (kg)</label> {/* Nhãn cho ô nhập liệu */}
+                <div style={styles.formGroup} className="form-group"> 
+                    <label style={styles.label}>Cân nặng (kg)</label> 
                     <input 
                         type="number" 
                         min="0"
@@ -192,25 +194,37 @@ const BMICalculator = () => {
                             if (val === '' || parseFloat(val) >= 0) {
                                 setWeight(val);
                             }
-                        }} /* Cập nhật cân nặng khi người dùng nhập liệu và ngăn số âm */
+                        }} 
                         placeholder="Nhập cân nặng..."
                     />
                 </div>
 
-                <div style={styles.formGroup} className="form-group"> {/* Nhóm hiển thị kết quả BMI */}
+                <div style={styles.formGroup} className="form-group">
                     <label style={styles.label}>Kết quả BMI</label>
                     <input 
-                        style={{...styles.input, background: '#e0e0e0', fontWeight: 'bold'}} /* Áp dụng style đặc biệt cho ô kết quả */ 
+                        style={{...styles.input, background: '#e0e0e0', fontWeight: 'bold'}} 
                         className="bmi-input"
-                        value={BMI || ''} /* Hiển thị kết quả BMI, nếu chưa có thì để trống */
+                        value={BMI || ''} 
                         readOnly 
                         placeholder="Kết quả"
                     />
                 </div>
 
-                <button style={styles.btnSubmit} className="bmi-btn-submit" onClick={calculateBMI}>Tính toán</button> 
+                <button 
+                    style={{
+                        ...styles.btnSubmit, 
+                        background: isSaving ? '#ccc' : '#d9d9d9',
+                        cursor: isSaving ? 'not-allowed' : 'pointer'
+                    }} 
+                    className="bmi-btn-submit" 
+                    onClick={calculateBMI}
+                    disabled={isSaving}
+                >
+                    {isSaving ? 'Đang lưu...' : 'Tính toán'}
+                </button> 
 
-                {/* Dòng thông báo tình trạng nhỏ dưới phần nhập liệu */}
+                
+                {isLoading && <div style={{width: '100%', textAlign: 'center'}}>Đang tải dữ liệu cũ...</div>}
                 {bmiStatus && (
                     <div style={{
                         ...styles.bmiStatusText, 
@@ -223,53 +237,39 @@ const BMICalculator = () => {
 
             <h3 style={styles.subTitle}>Danh sách món ăn gợi ý</h3>
 
-            {/* Món ăn 1 */}
-            <div style={styles.foodCard} className="food-card"> {/* Thẻ món ăn */ }
-                <div style={styles.foodImgBox} className="food-img-box"> {/* Khung chứa ảnh món ăn */ }
-                    <img src={potatoesData.img} alt={potatoesData.title} style={styles.img} /> {/* Ảnh món ăn */ }
-                </div>
-                <div style={styles.foodInfo}> {/* Thông tin món ăn */ }
-                    <h4 style={styles.foodTitle} className="food-title">{potatoesData.title}</h4> {/* Tiêu đề món ăn */ }
-                    <p style={styles.foodDesc} className="food-desc">{potatoesData.desc}</p> {/* Mô tả món ăn */ }
-                    <button 
-                        style={styles.btnDetail} /* Nút xem chi tiết món ăn */
-                        className="food-btn-detail"
-                        onClick={() => {   
-                            setSelectedFood(potatoesData); /* Đặt món ăn được chọn */
-                            setOpenModal(true); /* Mở Modal */
-                        }}
-                    >
-                        Chi tiết
-                    </button>
-                </div>
-            </div>
+            
+            {foods.length > 0 ? (
+                foods.map((food, index) => (
+                    <div key={food._id || index} style={styles.foodCard} className="food-card">
+                        <div style={styles.foodImgBox} className="food-img-box">
+                            
+                            <img 
+                                src={food.imageUrl ? `src/assets/img/${food.imageUrl}` : `src/assets/img/img-blog.svg`} 
+                                alt={food.title} 
+                                style={styles.img} 
+                            />
+                        </div>
+                        <div style={styles.foodInfo}>
+                            <h4 style={styles.foodTitle} className="food-title">{food.title}</h4>
+                            
+                            <p style={styles.foodDesc} className="food-desc">
+                                {food.desc || food.description || `${food.kcal || 0} kcal - ${food.category || 'Healthy'}`}
+                            </p>
+                            <button style={styles.btnDetail} className="food-btn-detail" onClick={() => { setSelectedFood(food); setOpenModal(true); }}>
+                                Chi tiết
+                            </button>
+                        </div>
+                    </div>
+                ))
+            ) : (
+                <p style={{ textAlign: 'center', color: '#666' }}>Đang tải món ăn từ cơ sở dữ liệu...</p>
+            )}
 
-            {/* Món ăn 2 - Có chức năng mở Modal */}
-            <div style={styles.foodCard} className="food-card"> {/* Thẻ món ăn */ }
-                <div style={styles.foodImgBox} className="food-img-box"> {/* Khung chứa ảnh món ăn */ }
-                    <img src={VegetablesImg} alt="Vegetables" style={styles.img} /> {/* Ảnh món ăn */}
-                </div>
-                <div style={styles.foodInfo}> {/* Thông tin món ăn */ }
-                    <h4 style={styles.foodTitle} className="food-title">{vegetableData.title}</h4> {/* Tiêu đề món ăn */}
-                    <p style={styles.foodDesc} className="food-desc">{vegetableData.desc}</p>   {/* Mô tả món ăn */}
-                    <button 
-                        style={styles.btnDetail}
-                        className="food-btn-detail"
-                        onClick={() => {   
-                            setSelectedFood(vegetableData); /* Đặt món ăn được chọn */
-                            setOpenModal(true);/* Mở Modal */
-                        }}
-                    >
-                        Chi tiết
-                    </button>
-                </div>
-            </div>
-
-            {/* Hiển thị Modal khi openModal = true */}
-            {openModal && ( //nếu trạng thái mở Modal là true thì hiển thị Modal
-                <FoodDetailModal //hiển thị chi tiết món ăn
-                    food={selectedFood} //truyền món ăn được chọn vào modal
-                    onClose={() => setOpenModal(false)} //hàm đóng modal,đặt trạng thái mở Modal về false
+            
+            {openModal && ( 
+                <FoodDetailModal 
+                    food={selectedFood} 
+                    onClose={() => setOpenModal(false)} 
                 />    
             )}
         </div>
