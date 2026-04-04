@@ -94,7 +94,12 @@ const Blog = () => {
                     imageUrl: "Potatoes.svg", 
                     details: [
                         { name: "Baked Potato", serving: "1 piece (173g)", calories: "212" },
+                        { name: "Croquettes", serving: "1 piece, small (19 g)", calories: "34" },
+                        { name: "Curly Fries", serving: "1 portion (85 g)", calories: "150" },
                         { name: "French Fries", serving: "1 portion (120g)", calories: "374" },
+                        { name: "Gnocchi", serving: "1 portion (120g)", calories: "326" },
+                        { name: "Hash Browns", serving: "1 piece (50 g)", calories: "86" },
+                        { name: "Latkes", serving: "1 piece, small (25 g)", calories: "49" },
                     ]
                 },
                 { 
@@ -104,8 +109,12 @@ const Blog = () => {
                     fullDesc: "Vegetables are a great high-volume, low-calorie option. You can eat a lot of them while keeping your calorie intake low.",
                     imageUrl: "Vegetables.jpg",
                     details: [
+                        { name: "Arrowroot", serving: "1 piece (33 g)", calories: "21" },
                         { name: "Artichoke", serving: "1 piece (128 g)", calories: "56" },
-                        { name: "Asparagus", serving: "1 piece, small (12 g)", calories: "2" }
+                        { name: "Asparagus", serving: "1 piece, small (12 g)", calories: "2" },
+                        { name: "Asparagus, cooked", serving: "1 portion (125 g)", calories: "19" },
+                        { name: "Azuki Beans", serving: "1 portion (60 g)", calories: "217" },
+                        { name: "Baked Beans", serving: "1 cup (253 g)", calories: "266" }
                     ]
                 },
                 { 

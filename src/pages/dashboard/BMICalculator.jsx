@@ -114,7 +114,7 @@ const BMICalculator = () => {
             transition: 'all 0.3s ease',
             cursor: 'pointer',
             boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-        },// Thẻ món ăn 
+        },
         foodImgBox: { width: '150px', height: '120px', borderRadius: '8px', overflow: 'hidden', background: '#f5f5f5', flexShrink: 0 },
         img: { width: '100%', height: '100%', objectFit: 'cover' },
         foodInfo: { flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' },
